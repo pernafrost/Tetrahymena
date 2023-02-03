@@ -1201,7 +1201,7 @@ if (includeBootstrap)
     scale_color_manual(values=c("#A3A3A3", "#666666", "#000000")) +
     scale_fill_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
     scale_shape_manual(values=c(21, 24, 22)) + # shapes for the markers
-    scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")")), limits=c(0, 900)) +
+    scale_y_continuous(name=expression(paste("Speed at T=20°C (", mu, "m/s", ")")), limits=c(0, 900)) +
     # scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")")), sec.axis = sec_axis( trans=~.*1e-6, name=paste("Speed (m/s)"))) +
     scale_x_continuous(name=expression("Adaptation temperature (ºC)"), limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
     theme_classic(base_size=18) +
