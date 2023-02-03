@@ -465,7 +465,7 @@ if (includeBootstrap)
     scale_color_manual(values=c("#A3A3A3", "#666666", "#000000")) +
     scale_fill_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
     scale_shape_manual(values=c(21, 24, 22)) + # shapes for the markers
-    scale_y_continuous(name="activation energy (eV)") + #
+    scale_y_continuous(name="Activation energy (eV)") + #
     scale_x_continuous(name="Adaptation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
     coord_cartesian(ylim = c(0, 1)) +
     theme_classic(base_size=18) +
