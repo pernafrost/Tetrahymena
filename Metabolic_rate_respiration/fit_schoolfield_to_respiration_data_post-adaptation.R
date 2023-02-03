@@ -528,8 +528,8 @@ ggplot(allFitResults, aes(x=tAdaptation, y=r_tref, fill=factor(mediumConcentrati
   scale_x_continuous(name="Adaptation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
   theme_classic(base_size=18) +
   theme(legend.position = "none") # +
-  # labs(color = "Conc.") + # this specifies a custom legend
-  # ggtitle(paste("M.R. at reference temperature T= ", referenceTemperature, "°C", sep=""))
+# labs(color = "Conc.") + # this specifies a custom legend
+# ggtitle(paste("M.R. at reference temperature T= ", referenceTemperature, "°C", sep=""))
 
 if (saveFigures){
   if (combineLinesTogether)
@@ -558,13 +558,13 @@ if (includeBootstrap)
     scale_color_manual(values=c("#A3A3A3", "#666666", "#000000")) +
     scale_fill_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
     scale_shape_manual(values=c(21, 24, 22)) + # shapes for the markers
-    scale_y_continuous(name="Respiration rate at T=20°C (nW)") +
+    scale_y_continuous(name="Rate at T=20°C (nW)") +
     # scale_y_continuous(name="Rate (nW)", sec.axis = sec_axis( trans=~.*W_to_respiration_rate(1e-9), name=expression(paste("Rate (",  mu, "mol[O2]/cell/min", ")")))) +
     scale_x_continuous(name="Adaptation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
     theme_classic(base_size=18) +
     theme(legend.position = "none")#  +
-    # labs(color = "Conc.") + # this specifies a custom legend
-    # ggtitle(paste("M.R. at reference temperature T= ", referenceTemperature, "°C", sep=""))
+  # labs(color = "Conc.") + # this specifies a custom legend
+  # ggtitle(paste("M.R. at reference temperature T= ", referenceTemperature, "°C", sep=""))
   
   if (saveFigures){
     if (combineLinesTogether)
@@ -581,7 +581,7 @@ if (includeBootstrap)
 
 # plot data and model fit
 ggplot(allFitResults, aes(x=tAdaptation, y=r_tadapt, color=factor(mediumConcentration), fill=factor(mediumConcentration + tAdaptation*100),  shape=factor(mediumConcentration), label=factor(line))) +
-  geom_point(size=4) +
+  geom_point(size=6, position=position_dodge(width=2)) + 
   # geom_text(color="red", size=4) + 
   scale_color_manual(values=c("#A3A3A3", "#666666", "#000000")) +
   scale_fill_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
@@ -645,6 +645,37 @@ if (saveFigures){
 }
 
 
+plotG1 <- ggplot(allFitData, aes(x=temp, y=rate, color=as.factor(tAdaptation), size=as.factor(mediumConcentration))) +
+  geom_line() +
+  geom_point(size=6, data=allFitResults, color="black", aes(x=tAdaptation, y=r_tadapt, fill=factor(tAdaptation),  shape=factor(mediumConcentration))) +
+  scale_x_continuous(name="Temp. (°C)",  limits=c(10, 25)) +
+  # scale_y_continuous(name="Rate (nW)",  limits=c(0.1, 3), trans = 'log10', sec.axis = sec_axis( trans=~.*W_to_respiration_rate(1e-9), name=expression(paste("Rate (",  mu, "mol[O2]/cell/min", ")"))))  +
+  scale_y_continuous(name="Rate (nW)",  limits=c(0.3, 3), trans = 'log10')  +
+  theme_classic(base_size=18) +
+  scale_color_manual(values=lineColours) +
+  scale_shape_manual(values=c(21, 24, 22)) + # shapes for the markers
+  scale_fill_manual(values=lineColours) +
+  scale_linetype_manual(values=lineTypes) + 
+  scale_alpha_continuous(range=c(0.3, 0.5)) +
+  scale_size_manual( values = c(0.4, 0.7, 1) ) +
+  theme(legend.position = "none") +
+  labs(color = "Conc.") 
+plotG1
+
+if (saveFigures){
+  if (combineLinesTogether)
+  {
+    ggsave(file="figure_fitted_rate_vs_tadapt_all.png", dpi = 600, width = 12, height = 10, units = "cm")
+    ggsave(file="figure_fitted_rate_vs_tadapt_all.eps", device="eps", dpi = 1200, width = 12, height = 10, units = "cm")
+    library(Cairo)
+    ggsave(file="figure_fitted_rate_vs_tadapt_all.pdf", device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
+  } else {
+    ggsave(file="figure_fitted_rate_vs_tadapt.png", dpi = 600, width = 12, height = 10, units = "cm")
+  }
+}
+
+
+
 
 
 experimentalResultsAtTAdapt <- subset(allExperimentResults, treatment == temperature)
@@ -689,7 +720,7 @@ if (combineLinesTogether)
     # labs(color = "Conc.") + # this specifies a custom legend
     ggtitle(paste("M.R. at adaptation temperature T"))
   
-
+  
   if (saveFigures){
     ggsave(file="aaaa_metabolic_rate_at_tadapt_only_all.png", dpi = 600, width = 12, height = 10, units = "cm")
   }
@@ -714,4 +745,3 @@ if (combineLinesTogether)
   
   
   
-}
