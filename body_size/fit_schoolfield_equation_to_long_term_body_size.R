@@ -50,8 +50,8 @@ referenceTemperature <- 20 # careful that it is not used in the schoolfield fitt
 skipMotherCulture <- TRUE # whether to skip the mother culture from this analysis
 
 
-fileName <- "/Users/perna/Dropbox/tetrahymena_results/tracking_results/population_growth_2021/track_analysis_individual_particles.csv"
-workingDir <- "/Users/perna/Dropbox/tetrahymena_results/body_size"
+fileName <- ~/population_growth/track_analysis_individual_particles.csv"
+workingDir <- "~/body_size"
 setwd(workingDir)
 allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
 
