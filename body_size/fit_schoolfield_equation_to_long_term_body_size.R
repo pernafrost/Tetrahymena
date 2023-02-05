@@ -287,6 +287,25 @@ for (aaa in 1:length(allTAdaptation))
         ggsave(file=paste(currentTitle, "_volume_vs_temp_jitter_color_speed.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
       }
       
+      # library("wesanderson")
+      # colourPalette <- wes_palette("Zissou1", 8, "continuous")
+      
+      ggplot(currentConditionTopSpeed, aes(x=tTest, y=estimatedLogVolume, fill=factor(tTest))) +
+        geom_violin(width=2) + # add a violin plot
+        geom_boxplot(width=0.4, outlier.shape = NA, color="black") + # add a violin plot
+        scale_y_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3))) +
+        scale_x_continuous(name="Temp. (°C)", limits=c(10, 32.5)) +
+        theme_classic(base_size = 15) +
+        theme(legend.position = "none") +
+        scale_fill_manual(values=c("#3B9AB2", "#5DAABC", "#88BAAE", "#CAC656", "#E8C31E", "#E2B306", "#E86F00", "#F21A00"))
+      
+      if (saveFigures){
+        ggsave(file=paste(currentTitle, "_logvolume_vs_temp_violin.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
+        ggsave(file=paste(currentTitle, "_logvolume_vs_temp_violin.eps", sep=""), device="eps", dpi = 600, width = 12, height = 10, units = "cm")
+        library(Cairo)
+        ggsave(file=paste(currentTitle, "_logvolume_vs_temp_violin.pdf", sep=""), device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
+      }
+      
       
       # currentConditionTopSpeed$estimatedVolume <- (4/3 * pi* currentConditionTopSpeed$medianBEllipse * currentConditionTopSpeed$medianAEllipse * currentConditionTopSpeed$medianAEllipse / 8)
       ggplot(currentConditionTopSpeed, aes(x=tTest, y=oneOverVolume, color=medianSpeed)) +
@@ -958,8 +977,7 @@ if (includeBootstrap)
     theme_classic(base_size=18) +
     theme(legend.position = "none") +
     labs(color = "Conc.") # + # this specifies a custom legend
-  # ggtitle(paste("1/V at reference temperature (", referenceTemperature, "°C)", sep=""))
-  
+
 
   # plot data and model fit
   ggplot(allFitResults, aes(x=tAdaptation, y=r_tref, color=factor(mediumConcentration), fill=factor(mediumConcentration + tAdaptation*100), shape=factor(mediumConcentration), label=factor(line))) +
@@ -1064,5 +1082,6 @@ if (saveFigures){
     ggsave(file="figure_fitted_Volume_vs_temp.png", dpi = 600, width = 12, height = 10, units = "cm")
   }
 }
+
 
 
