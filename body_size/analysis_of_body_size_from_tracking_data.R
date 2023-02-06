@@ -153,7 +153,11 @@ ggplot(d, aes(x=factor(mediumConcentration), y=medianBEllipse, col=factor(tAdapt
   scale_fill_manual(values= alpha(c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")), 0.9) + # this is the zissou1 palette
   scale_color_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) # this is the zissou1 palette
 if (saveFigures){
+  ggsave(file=paste(currentTitle, "_length.eps", sep=""), device="eps", dpi = 1200, width = 12, height = 10, units = "cm")
   ggsave(file=paste(currentTitle, "_length.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
+  library(Cairo)
+  ggsave(file=paste(currentTitle, "_length.pdf", sep=""), device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
+  
 }
 
 
@@ -166,7 +170,11 @@ ggplot(d, aes(x=factor(mediumConcentration, levels=sort(unique(as.numeric(medium
   scale_fill_manual(values= alpha(c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")), 0.9) + # this is the zissou1 palette
   scale_color_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) # this is the zissou1 palette
 if (saveFigures){
+  ggsave(file=paste(currentTitle, "_width.eps", sep=""), device="eps", dpi = 1200, width = 12, height = 10, units = "cm")
   ggsave(file=paste(currentTitle, "_width.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
+  library(Cairo)
+  ggsave(file=paste(currentTitle, "_width.pdf", sep=""), device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
+  
 }
 
 
@@ -181,7 +189,10 @@ ggplot(d, aes(x=factor(mediumConcentration, levels=sort(unique(as.numeric(medium
   scale_fill_manual(values= alpha(c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")), 0.9) + # this is the zissou1 palette
   scale_color_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) # this is the zissou1 palette
 if (saveFigures){
+  ggsave(file=paste(currentTitle, "_elongation.eps", sep=""), device="eps", dpi = 1200, width = 12, height = 10, units = "cm")
   ggsave(file=paste(currentTitle, "_elongation.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
+  library(Cairo)
+  ggsave(file=paste(currentTitle, "_elongation.pdf", sep=""), device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
 }
 
 
