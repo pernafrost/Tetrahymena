@@ -233,11 +233,17 @@ for (aaa in 1:length(allTAdaptation))
       myFitIntercepts <- myFit[myFit$term == "(Intercept)",]
       myFitSlopes <- myFit[myFit$term == "incubationDuration",]
       
+      # maxDensity
+      maxDensity <- tempDataset %>% group_by(tTest) %>% dplyr::summarise(log2DensityMax = max(log2Density))
+      # This can give us an idea of the maximum number of generations in culture
+      # mean or max(populationGrowthRates$maxDensity - populationGrowthRates$fitIntercept)
+      
       for (iii in 1:dim(myFitSlopes)[1])
       {
-        growthRateInfo <- data.frame(line=allLines[lll], tAdaptation=allTAdaptation[aaa], mediumConcentration=allMediumConcentrations[mmm], tTest = myFitSlopes$tTest[iii], growthRate = myFitSlopes$estimate[iii], standardErrorOnSlope = myFitSlopes$std.error[lll], fitIntercept = myFitIntercepts$estimate[iii])
+        growthRateInfo <- data.frame(line=allLines[lll], tAdaptation=allTAdaptation[aaa], mediumConcentration=allMediumConcentrations[mmm], tTest = myFitSlopes$tTest[iii], growthRate = myFitSlopes$estimate[iii], standardErrorOnSlope = myFitSlopes$std.error[lll], fitIntercept = myFitIntercepts$estimate[iii], maxDensity=maxDensity$log2DensityMax[iii])
         populationGrowthRates <- rbind(populationGrowthRates, growthRateInfo)
       }
+      
       
       
       
@@ -256,6 +262,8 @@ for (aaa in 1:length(allTAdaptation))
       )
       if (saveFigures){
         ggsave(file=paste("aaaa_short_term_population_growth_line_", allLines[lll], "_conc_", allMediumConcentrations[mmm], "_tadapt_", allTAdaptation[aaa], "_experiment.eps", sep=""), device="eps", dpi = 1200, width = 14, height = 10, units = "cm")
+        ggsave(file=paste("aaaa_short_term_population_growth_line_", allLines[lll], "_conc_", allMediumConcentrations[mmm], "_tadapt_", allTAdaptation[aaa], "_experiment.png", sep=""), device="png", dpi = 600, width = 14, height = 10, units = "cm")
+        
       }
       
       
