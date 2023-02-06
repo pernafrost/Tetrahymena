@@ -165,7 +165,7 @@ ggplot(d, aes(x=factor(mediumConcentration, levels=sort(unique(as.numeric(medium
   geom_boxplot(width=0.6, outlier.shape = NA, colour="black", aes(fill = factor(tAdaptation))) + # add a box plot
   theme_classic(base_size = 22) +
   theme(legend.position = "none") + 
-  scale_y_continuous(name=expression(paste("Minor axis length"," (",  mu, "m)"))) +
+  scale_y_continuous(name=expression(paste("Minor axis length"," (",  mu, "m)")), lim=c(0,50)) +
   scale_x_discrete(name="Adaptation conditions", labels=c("50%", "100%", "200%")) +
   scale_fill_manual(values= alpha(c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")), 0.9) + # this is the zissou1 palette
   scale_color_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) # this is the zissou1 palette
@@ -184,7 +184,7 @@ ggplot(d, aes(x=factor(mediumConcentration, levels=sort(unique(as.numeric(medium
   geom_boxplot(width=0.6, outlier.shape = NA, colour="black", aes(fill = factor(tAdaptation))) + # add a box plot
   theme_classic(base_size = 22) +
   theme(legend.position = "none") + 
-  scale_y_continuous(name=expression(paste("Aspect ratio"))) +
+  scale_y_continuous(name=expression(paste("Aspect ratio")), lim=c(0,4)) +
   scale_x_discrete(name="Adaptation conditions", labels=c("50%", "100%", "200%")) +
   scale_fill_manual(values= alpha(c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")), 0.9) + # this is the zissou1 palette
   scale_color_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) # this is the zissou1 palette
@@ -226,6 +226,5 @@ if (saveFigures){
   ggsave(file=paste(currentTitle, "_logvolume.pdf", sep=""), device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
   ggsave(file=paste(currentTitle, "_logvolume.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
 }
-
 
 
