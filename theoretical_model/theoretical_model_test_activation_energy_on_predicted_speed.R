@@ -750,7 +750,7 @@ library(rTPC)
 library(nls.multstart)
 library(broom)
 library(tidyverse)
-setwd("/Users/perna/Dropbox/tetrahymena_results/theoretical_model")
+setwd("~/Tetrahymena/theoretical_model")
 
 
 dev.off()
