@@ -54,7 +54,7 @@ if (saveFigures == TRUE)
 referenceTemperature <- 20 # note that this is not used; check in the code
 skipMotherCulture <- TRUE # whether to skip the mother culture from this analysis
 
-fileName <- "~/speed_response/track_analysis_results_individual_particles.csv" # file.choose() # ask the user to select a file name.
+fileName <- "~/Tetrahymena/acute_speed_response/track_analysis_results_individual_particles.csv" # file.choose() # ask the user to select a file name.
 
 setwd(dirname(fileName))
 allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
