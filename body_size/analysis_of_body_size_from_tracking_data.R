@@ -7,8 +7,8 @@ dev.off()
 
 library(ggplot2)
 
-fileName <- "~/speed_response/track_analysis_results_individual_particles.csv" # file.choose() # ask the user to select a file name.
-workingDir <- "~/body_size"
+fileName <- "~/Tetrahymena/acute_speed_response/track_analysis_results_individual_particles.csv" # file.choose() # ask the user to select a file name.
+workingDir <- "~/Tetrahymena/body_size"
 setwd(workingDir)
 allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
 
