@@ -96,7 +96,7 @@ library(ggplot2)
 
 referenceTemperature <- 20 # note that this is not used; check in the code
 
-fileName <- "~/post-data/summary_MR_post_adaptation.csv" # file.choose() # ask the user to select a file name.
+fileName <- "~/Tetrahymena/Metabolic_rate_respiration/summary_MR_post_adaptation.csv" # file.choose() # ask the user to select a file name.
 
 setwd(dirname(fileName))
 
