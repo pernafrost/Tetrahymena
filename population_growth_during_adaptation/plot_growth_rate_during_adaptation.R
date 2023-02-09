@@ -1,7 +1,7 @@
 rm(list=ls()) # clean memory
 
 # file name file.choose() # 
-fileName <- file.choose() # "./population_growth_during_adaptation/growth_data_during_adaptation.csv"
+fileName <- "~/Tetrahymena/population_growth_during_adaptation/growth_data_during_adaptation.csv"
 
 # change directory
 setwd(dirname(fileName))
