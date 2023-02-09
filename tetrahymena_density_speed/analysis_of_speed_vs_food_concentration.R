@@ -162,6 +162,7 @@ for (aaa in 1:length(allTAdaptation))
       thisPlot <- ggplot(d, aes(x=mediumConcentration, y=medianSpeed)) +
         geom_errorbar(aes(ymin=medianSpeed-sd, ymax=medianSpeed+sd), width=1.3, col="black") + 
         geom_point(size=6, fill=markerColours[aaa], color="black", shape=markerShapes[aaa]) +
+        annotate("text", size=6, x=140, y=900, label= paste("T=", allTAdaptation[aaa], "°C", sep=""), hjust = 0, parse=F) +
         theme_classic(base_size = 18) +
         scale_x_continuous(name="Medium Concentration (%)",  limits=c(0, 200)) +
         scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")")), limits=c(0,1000), breaks=seq(0, 1000, by=200))
