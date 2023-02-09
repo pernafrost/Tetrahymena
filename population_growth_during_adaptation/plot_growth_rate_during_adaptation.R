@@ -92,8 +92,10 @@ scale_fill_manual(values= c("#EBCC2A", "#3B9AB2", "#F21A00"))# this is the zisso
   
   plotG1
   
-  ggsave(file="tetrahymena_growth_rate_during_adaptation.png", dpi = 600, width = 15, height = 12, units = "cm")
+  ggsave(file="tetrahymena_growth_rate_during_adaptation.png", dpi = 600, width = 15, height = 10, units = "cm")
   ggsave(file="tetrahymena_growth_rate_during_adaptation.eps", device="eps", dpi = 1200, width = 15, height = 10, units = "cm")
+  library(Cairo)
+  ggsave(file="tetrahymena_growth_rate_during_adaptation.pdf", device="pdf", dpi = 1200, width = 15, height = 10, units = "cm")
   
   
 # Isolate the data for the 9 experimental cultures after splitting the mother culture
@@ -118,6 +120,8 @@ scale_fill_manual(values= c("#EBCC2A", "#3B9AB2", "#F21A00"))# this is the zisso
   
   ggsave(file="avg_growth_rate_during_adaptation.eps", device="eps", dpi = 1200, width = 12, height = 10, units = "cm")
   ggsave(file="avg_growth_rate_during_adaptation.png", dpi = 600, width = 12, height = 10, units = "cm")
+  library(Cairo)
+  ggsave(file="avg_growth_rate_during_adaptation.pdf", device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
   
   
   
@@ -132,5 +136,4 @@ scale_fill_manual(values= c("#EBCC2A", "#3B9AB2", "#F21A00"))# this is the zisso
   ggsave(file="figure_growth_rate_during_adaptation.png", dpi = 600, width = 22, height = 10, units = "cm")
   library(Cairo)
   ggsave(file="figure_growth_rate_during_adaptation.pdf", device=cairo_pdf, dpi = 1200, width = 22, height = 10, units = "cm")
-  
   
