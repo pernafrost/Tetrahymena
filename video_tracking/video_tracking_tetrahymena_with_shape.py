@@ -215,6 +215,15 @@ else:
 				tempROI = currROI[1:]
 				cv2.polylines(frame,[tempROI],True,(255,127,127))
 				
+			elif key == ord("a"):
+				currROI = np.zeros((1,2), dtype=int)
+				currROI = np.append(currROI, np.array([[0, 0]]), axis=0)
+				currROI = np.append(currROI, np.array([[1, 1]]), axis=0)
+				currROI = np.append(currROI, np.array([[1, int(frameHeight)-1]]), axis=0)
+				currROI = np.append(currROI, np.array([[int(frameWidth)-1, int(frameHeight)-1]]), axis=0)
+				currROI = np.append(currROI, np.array([[int(frameWidth)-1, 1]]), axis=0)
+				cv2.polylines(frame,[currROI],True,(255,127,127))
+				
 			elif key == ord("t"): # toggle small large window
 				if toggleSmallerWindow == False:
 					toggleSmallerWindow = True
