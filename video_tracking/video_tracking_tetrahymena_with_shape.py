@@ -27,7 +27,7 @@ sys.path.append('/usr/local/lib/python3.5/site-packages/')
 import cv2
 
 from skimage.feature import peak_local_max
-from skimage.morphology import watershed
+from skimage.segmentation import watershed
 from skimage.morphology import medial_axis
 from skimage.morphology import skeletonize
 from scipy import ndimage
