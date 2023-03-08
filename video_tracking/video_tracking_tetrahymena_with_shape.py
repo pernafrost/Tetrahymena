@@ -17,9 +17,7 @@ import argparse
 # Here I specify the path to cv2.
 # On my computer the actual name is cv2.cpython-35m-darwin.so
 # and I create a link that I name cv2.so
-#sys.path.append('/usr/local/lib/python3.5/site-packages/')
-# sys.path.append('/home/aperna/.local/lib/python3.7/dist-packages/')
-# testsys.path.append('/Users/perna/Library/Python/3.7/lib/python/site-packages/')
+
 sys.path.append('/usr/local/lib/python3.5/site-packages/')
 
 
