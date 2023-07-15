@@ -7,7 +7,7 @@ rm(list=ls()) # clean memory
 
 
 verbose = FALSE # This tells the programme to print some information for each function
-
+ 
 
 
 #################################################################################################################
@@ -84,6 +84,9 @@ W_to_respiration_rate <- function(metabolicRateW, dPredator)
 saveFigures <- TRUE
 combineLinesTogether <- TRUE # whether to analyse all experimental lines together or each independently
 includeBootstrap <- TRUE # whether to run a bootstrap on the fitted thermal response curve
+removeOutlier = TRUE # remove a data point adapted at 25 degrees and high medium concentration
+# and tested at 25 degrees for line 2 whose respiration rate was of 3.96 nW, much larger than in the other
+# lines. We believe that the cell count for this culture was wrong
 
 # dev.off()
 
@@ -102,7 +105,11 @@ setwd(dirname(fileName))
 
 # read the formatted and pre-processed respiration data
 allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
-
+if (removeOutlier == T)
+{
+  dplyr::filter(allExperimentResults, (replicate == "B" & concentration == 200 & temperature == 25 & treatment == "25"))
+  library(dplyr); allExperimentResults <- dplyr::filter(allExperimentResults, !(replicate == "B" & concentration == 200 & temperature == 25 & treatment == "25"))
+}
 
 
 allTreatments <- unique(allExperimentResults$treatment)
@@ -716,18 +723,21 @@ if (combineLinesTogether)
     scale_y_continuous(name="Rate (nW)", sec.axis = sec_axis( trans=~.*W_to_respiration_rate(1e-9), name=expression(paste("Rate (",  mu, "mol[O2]/cell/min", ")")))) +
     scale_x_continuous(name="Adaptation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
     theme_classic(base_size=18) +
-    theme(legend.position = "none") +
+    theme(legend.position = "none")#  +
     # labs(color = "Conc.") + # this specifies a custom legend
-    ggtitle(paste("M.R. at adaptation temperature T"))
+    # ggtitle(paste("M.R. at adaptation temperature T"))
   
   
   if (saveFigures){
     ggsave(file="aaaa_metabolic_rate_at_tadapt_only_all.png", dpi = 600, width = 12, height = 10, units = "cm")
+    library(Cairo)
+    ggsave(file="aaaa_metabolic_rate_at_tadapt_only_all.pdf", device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
+    ggsave(file="aaaa_metabolic_rate_at_tadapt_only_all.eps", device="eps", dpi = 1200, width = 12, height = 10, units = "cm")
   }
   
 } else {
   # Metabolic rate at the adaptation temperature without Schoolfield fitting (only the original data)
-  ggplot(experimentalResultsAtTAdapt, aes(x=treatment, y=rate.per.cell.nW, color=factor(concentration), fill=factor(concentration + treatment*100),  shape=factor(concentration), label=factor(replicate))) +
+  ggplot(experimentalResultsAtTAdapt, aes(x=treatment, y=rate.per.cell.nW, color=factor(concentration), fill=factor(concentration + treatment*100), shape=factor(concentration), label=factor(replicate))) +
     geom_jitter(size=4, position = position_jitter(height = 0, width = .3)) +
     scale_color_manual(values=c("#A3A3A3", "#666666", "#000000")) +
     scale_fill_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
@@ -745,3 +755,4 @@ if (combineLinesTogether)
   
   
   
+}
