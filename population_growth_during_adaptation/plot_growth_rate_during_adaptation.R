@@ -137,3 +137,29 @@ scale_fill_manual(values= c("#EBCC2A", "#3B9AB2", "#F21A00"))# this is the zisso
   library(Cairo)
   ggsave(file="figure_growth_rate_during_adaptation.pdf", device=cairo_pdf, dpi = 1200, width = 22, height = 10, units = "cm")
   
+################# DP CODE ######################
+# start with ANOVA analysis with interaction between adaptation temp and concentration
+m <- lm(growth_rate_gen_per_day ~ tAdapt * density, data = experimentalCultures)
+plot(m) # model is nicely behaved and assumption are met
+summary(m) #R-squared values indicates approx 58% of variation in data is explained
+
+# because we have multiple measurements from each culture (line) we should use linear-mixed effects 
+# models to account for this
+
+# fit using lme4 package but this does not give p-values
+library(lme4)
+m <- lmer(growth_rate_gen_per_day ~ tAdapt * density + (1 | line), data = experimentalCultures)
+summary(m)
+
+# check model performace 
+library(performance)
+mod.check <- check_model(m)
+mod.check # all looks good. High multi-collinearity but this is not a major issue as we are not interested in estimating parameters
+#  Could not compute standard errors from random effects, but this is fine.
+
+library(lmerTest)
+anova(m)
+
+library('emmeans')
+emmeans(m, ~ tAdapt)
+emmeans(m, ~ density)
