@@ -228,3 +228,45 @@ if (saveFigures){
 }
 
 
+
+################# DP CODE ######################
+# need to specify that variables are categorical (rather than continuous)
+d$tAdaptation <- as.factor(d$tAdaptation)
+d$mediumConcentration <- as.factor(d$mediumConcentration)
+str(d)
+
+# start with ANOVA analysis with interaction between adaptation temp and concentration
+m <- lm(estimatedlogVolume ~ tAdaptation * mediumConcentration, data = d)
+plot(m) # model is nicely behaved and assumption are met
+summary(m) #R-squared values indicates approx 34% of variation in data is explained
+
+# because we have multiple measurements from each culture (line) we should use linear-mixed effects 
+# models to account for this
+
+# fit using lme4 package but this does not give p-values
+library(lme4)
+m <- lmer(estimatedlogVolume ~ tAdaptation * mediumConcentration + (1 | line), data = d)
+summary(m)
+
+# check model performace 
+library(performance)
+mod.check <- check_model(m)
+mod.check # all looks good. High multi-collinearity but this is not a major issue as we are not interested in estimating parameters
+
+library(lmerTest)
+anova(m)
+
+library('emmeans')
+emmeans(m, ~ tAdaptation)
+emmeans(m, ~ mediumConcentration)
+emmeans(m, ~ tAdaptation * mediumConcentration)
+
+# cell shrinkage at low nutrients
+(4.45 - 4.12) / 4.45 *100
+
+# cell shrinkage at intermediate nutrients
+(4.46 - 4.23) / 4.46 *100
+
+# cell shrinkage at high nutrients
+(4.30 - 4.23) / 4.30 *100
+
