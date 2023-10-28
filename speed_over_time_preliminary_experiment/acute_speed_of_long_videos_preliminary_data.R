@@ -54,7 +54,7 @@ if (saveFigures == TRUE)
 referenceTemperature <- 20 # note that this is not used; check in the code
 skipMotherCulture <- TRUE # whether to skip the mother culture from this analysis
 
-fileName <- "/Users/perna/Dropbox/tetrahymena_results/tracking_results/long_trajectories_2019_preliminary_experiment/track_analysis_results_individual_particles.csv" # file.choose() # ask the user to select a file name.
+fileName <- "~/Tetrahymena/speed_over_time_preliminary_experiment/track_analysis_results_individual_particles_preliminary_experiment_long_tracking.csv" # file.choose() # ask the user to select a file name.
 
 setwd(dirname(fileName))
 allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
