@@ -180,7 +180,7 @@ for (aaa in 1:length(allTAdaptation))
             currentConditionThisTemperatureAndLine$speedQuantileInTimeBin[currentConditionThisTemperatureAndLine$tTest == allTTest[ttt] & currentConditionThisTemperatureAndLine$line==allLinesInsideLoop[iii] & currentConditionThisTemperatureAndLine$medianFrame/framesPerSecond/60 >= timeBins[zzz] & currentConditionThisTemperatureAndLine$medianFrame/framesPerSecond/60 < timeBins[zzz] + 1.5] <- speedQuantileInTimeBin
           }
           markerColours = c("#A3A3A3", "#666666", "#000000", "#FF00FF")
-          markerShapes = c(21, 24, 22)
+          markerShapes = c(24, 22, 21)
           lineColours = c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")
           
           currentConditionTopSpeedThisTemperatureAndLine <- subset(currentConditionThisTemperatureAndLine, medianSpeed >= speedQuantileInTimeBin)
