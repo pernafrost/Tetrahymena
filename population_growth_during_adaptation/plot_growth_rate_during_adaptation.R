@@ -24,7 +24,7 @@ library(readr)
 newColumns[,1:2] = (parse_number(newColumns[,1:2] ))
 
 # add the new columns to the original table
-populationGrowthData <- cbind(populationGrowthData, newColumns, deparse.level = 1, stringsAsFactors = default.stringsAsFactors())
+populationGrowthData <- cbind(populationGrowthData, newColumns, deparse.level = 1, stringsAsFactors = FALSE)
 
 # Find the data for the mother culture (as it has same density and temperature, but I prefer to consider it as a separate culture)
 populationGrowthData$isMotherCulture <- as.numeric(populationGrowthData$line == 1 | populationGrowthData$line == 2)
