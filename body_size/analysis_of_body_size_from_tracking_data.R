@@ -2,7 +2,31 @@ rm(list=ls()) # clean memory
 
 skipMotherCulture <- TRUE
 saveFigures <- TRUE
-dev.off()
+if(!is.null(dev.list())) dev.off()
+
+
+#################################################################################################################
+# Function to calculate the mean and the standard deviation
+# for each group (useful to combine lines together)
+#+++++++++++++++++++++++++
+# data : a data frame
+# varname : the name of a column containing the variable
+#to be summariezed
+# groupnames : vector of column names to be used as
+# grouping variables
+data_summary <- function(data, varname, groupnames){
+  require(plyr)
+  library("plotrix") # for standard error
+  summary_func <- function(x, col){
+    c(mean = mean(x[[col]], na.rm=TRUE),
+      sd = sd(x[[col]], na.rm=TRUE),
+      se = std.error(x[[col]], na.rm=TRUE))
+  }
+  data_sum<-ddply(data, groupnames, .fun=summary_func,
+                  varname)
+  data_sum <- plyr::rename(data_sum, c("mean" = varname))
+  return(data_sum)
+}
 
 
 library(ggplot2)
@@ -229,6 +253,36 @@ if (saveFigures){
 
 
 
+  # here plot with error bars
+  # Summarize the data in order to plot the data with error bar
+  d2 <- data_summary(d, varname="estimatedlogVolume", 
+                     groupnames=c("tAdaptation", "mediumConcentration"))
+
+plotG2bis <- ggplot(d2, aes(x=factor(mediumConcentration, levels=sort(unique(as.numeric(mediumConcentration)))), estimatedlogVolume, colour=factor(tAdaptation))) +
+  # geom_violin(aes(fill = factor(TreatmentNumber))) +
+  # coord_cartesian(ylim = c(0,150000)) + # limit y axis to 150000
+  # stat_summary(fun.data=mean_sdl, mult=1, geom="pointrange", color="red") +
+  # scale_fill_grey() + 
+  # geom_boxplot(width=0.6, outlier.shape = NA, colour="black", aes(fill = factor(tAdapt))) + # add a box plot
+  geom_errorbar(aes(ymin=estimatedlogVolume-sd, ymax=estimatedlogVolume+sd), width=0.1, position=position_dodge(width=0.2)) + 
+  geom_point(size=6, shape=21, position=position_dodge(width=0.2), aes(col=factor(tAdaptation), fill=factor(tAdaptation))) + 
+  theme_classic(base_size = 22) +
+  theme(legend.position = "none") + 
+  scale_y_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3))) +
+  scale_x_discrete(name="Adaptation conditions", labels=c("50%", "100%", "200%")) +
+  scale_fill_manual(values= alpha(c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")), 0.9) + # this is the zissou1 palette
+  scale_color_manual(values=c("#000000", "#000000", "#000000", "#FF00FF")) # this is the zissou1 palette
+plotG2bis
+
+if (saveFigures){
+  ggsave(file=paste(currentTitle, "_logvolume_errorbar.eps", sep=""), device="eps", dpi = 1200, width = 12, height = 10, units = "cm")
+  library(Cairo)
+  ggsave(file=paste(currentTitle, "_logvolume_errorbar.pdf", sep=""), device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
+  ggsave(file=paste(currentTitle, "_logvolume_errorbar.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
+}
+
+
+
 ################# DP CODE ######################
 # need to specify that variables are categorical (rather than continuous)
 d$tAdaptation <- as.factor(d$tAdaptation)
@@ -269,4 +323,5 @@ emmeans(m, ~ tAdaptation * mediumConcentration)
 
 # cell shrinkage at high nutrients
 (4.30 - 4.23) / 4.30 *100
+
 
