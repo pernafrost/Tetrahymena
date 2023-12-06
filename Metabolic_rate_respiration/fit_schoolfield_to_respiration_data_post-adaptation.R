@@ -1,5 +1,5 @@
 rm(list=ls()) # clean memory
-
+if(!is.null(dev.list())) dev.off()
 
 
 
@@ -88,8 +88,6 @@ removeOutlier = TRUE # remove a data point adapted at 25 degrees and high medium
 # and tested at 25 degrees for line 2 whose respiration rate was of 3.96 nW, much larger than in the other
 # lines. We believe that the cell count for this culture was wrong
 
-# dev.off()
-
 # load packages
 library(rTPC)
 library(nls.multstart)
@@ -98,6 +96,7 @@ library(tidyverse)
 library(ggplot2)
 
 referenceTemperature <- 20 # note that this is not used; check in the code
+
 
 fileName <- "~/Tetrahymena/Metabolic_rate_respiration/summary_MR_post_adaptation.csv" # file.choose() # ask the user to select a file name.
 
@@ -166,7 +165,7 @@ for (aaa in 1:length(allTreatments))
       
       if(!require(dplyr)){install.packages('dplyr')}
       d <- currentCondition %>% 
-        select("replicate", "treatment", "rate.per.cell.nW", "temperature")%>%
+        dplyr::select("replicate", "treatment", "rate.per.cell.nW", "temperature")%>%
         dplyr::rename(
           curve_id = replicate,
           growth_temp = treatment,
@@ -696,7 +695,8 @@ if (combineLinesTogether)
                        groupnames=c("treatment", "concentration"))
   
   
-  # plot data and model fit
+  # plot data and model fit (this is not based on the entire thermal response curve, only on 
+  # values of respiration at tAdapt!)
   ggplot(dSum, aes(x=treatment, y=rate.per.cell.nW, color=factor(concentration), shape=factor(concentration))) +
     geom_point(size=6, position=position_dodge(width=2)) + 
     # geom_errorbar(aes(ymin=e_from_fit_0025, ymax=e_from_fit_0975), width=0, position=position_dodge(width=2)) + 
@@ -711,7 +711,7 @@ if (combineLinesTogether)
     # labs(color = "Conc.") + # this specifies a custom legend
     ggtitle(paste("M.R. at adaptation temperature T"))
   
-  # plot data and model fit
+  # plot data and error bar
   ggplot(dSum, aes(x=treatment, y=rate.per.cell.nW, color=factor(concentration), fill=factor(concentration + treatment*100), shape=factor(concentration))) +
     geom_errorbar(aes(ymin=rate.per.cell.nW - sd, ymax=rate.per.cell.nW + sd), width=0, position=position_dodge(width=2)) + 
     geom_point(size=6, position=position_dodge(width=2)) + 
@@ -735,6 +735,31 @@ if (combineLinesTogether)
     ggsave(file="aaaa_metabolic_rate_at_tadapt_only_all.eps", device="eps", dpi = 1200, width = 12, height = 10, units = "cm")
   }
   
+  
+  # Same plot, but grouping by medium concentration rather than temperature
+  ggplot(dSum, aes(x=factor(concentration), y=rate.per.cell.nW, color=factor(treatment), fill=factor(treatment))) +
+    geom_errorbar(aes(ymin=rate.per.cell.nW - sd, ymax=rate.per.cell.nW + sd), width=0.1, position=position_dodge(width=0.2)) +  
+    geom_point(size=6, shape=21, position=position_dodge(width=0.2), aes(col=factor(treatment), fill=factor(treatment))) + 
+    # geom_errorbar(aes(ymin=e_from_fit_0025, ymax=e_from_fit_0975), width=0, position=position_dodge(width=2)) + 
+    # geom_text(color="red", size=4) + 
+    scale_shape_manual(values=c(21, 24, 22)) + # shapes for the markers
+    scale_y_continuous(name="Rate (nW)", limits=c(0,1.8), sec.axis = sec_axis( trans=~.*W_to_respiration_rate(1e-9), name=expression(paste("Rate (",  mu, "mol[O2]/cell/min", ")")))) +
+    scale_x_discrete(name="Adaptation conditions", labels=c("50%", "100%", "200%")) +
+    scale_fill_manual(values= alpha(c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")), 0.9) + # this is the zissou1 palette
+    scale_color_manual(values=c("#000000", "#000000", "#000000", "#FF00FF")) + # this is the zissou1 palette
+    theme_classic(base_size=18) +
+    theme(legend.position = "none")#  +
+  # labs(color = "Conc.") + # this specifies a custom legend
+  # ggtitle(paste("M.R. at adaptation temperature T"))
+  
+  if (saveFigures){
+    ggsave(file="aaaa_metabolic_rate_at_tadapt_only_x_conc_all.png", dpi = 600, width = 12, height = 10, units = "cm")
+    library(Cairo)
+    ggsave(file="aaaa_metabolic_rate_at_tadapt_only_x_conc_all.pdf", device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
+    ggsave(file="aaaa_metabolic_rate_at_tadapt_only_x_conc_all.eps", device="eps", dpi = 1200, width = 12, height = 10, units = "cm")
+  }
+  
+  
 } else {
   # Metabolic rate at the adaptation temperature without Schoolfield fitting (only the original data)
   ggplot(experimentalResultsAtTAdapt, aes(x=treatment, y=rate.per.cell.nW, color=factor(concentration), fill=factor(concentration + treatment*100), shape=factor(concentration), label=factor(replicate))) +
@@ -752,7 +777,5 @@ if (combineLinesTogether)
   if (saveFigures){
     ggsave(file="aaaa_metabolic_rate_at_tadapt_only.png", dpi = 600, width = 12, height = 10, units = "cm")
   }
-  
-  
-  
 }
+
