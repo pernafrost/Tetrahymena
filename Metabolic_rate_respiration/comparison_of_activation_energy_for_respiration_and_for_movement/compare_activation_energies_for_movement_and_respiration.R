@@ -6,7 +6,7 @@ library(ggplot2)
 library(dplyr)
 
 # NOTE that activation energies can be calculated for each line, or for each 
-# experimental conditions: there are 9 experimental conditions, 3 for temperature
+# experimental conditions: there are 9 experimental condition, 3 for temperature
 # and 3 for medium concentration, but there are 4 replicate lines in each condition
 # so the data can be either 9 values of activation energy, or 9x4=36. The files 
 # related to respiration data are named as follows:
