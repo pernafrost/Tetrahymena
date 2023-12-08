@@ -32,10 +32,10 @@ library(dplyr)
 
 
 # the file with the activation energies for movement speed
-fileNameSpeed <- "/Users/perna/Dropbox/tetrahymena_results/tracking_results/speed_response_2021/allFitResults_Schoolfield_on_Speed_acute_response_all.csv" # file.choose() # ask the user to select a file name. # file.choose() # ask the user to select a file name.
+fileNameSpeed <- "allFitResults_Schoolfield_on_Speed_acute_response_all.csv" # "/../../acute_speed_response/allFitResults_Schoolfield_on_Speed_acute_response_all.csv" # file.choose() # ask the user to select a file name. # file.choose() # ask the user to select a file name.
 
 # the file with the activation energies for metabolic rate measured from respiration
-fileNameRespiration <- "/Users/perna/Dropbox/tetrahymena_results/provided_code_and_examples/Metabolic_rate_respiration/post-data/allFitResults_metabolic_rate_post-adaptation_all.csv" # file.choose() # ask the user to select a file name.
+fileNameRespiration <- "allFitResults_metabolic_rate_post-adaptation_all.csv" # "../Metabolic_rate_respiration/post-data/allFitResults_metabolic_rate_post-adaptation_all.csv" # file.choose() # ask the user to select a file name.
 setwd(dirname(fileNameRespiration))
 
 dSpeed <- read.table(file = fileNameSpeed, sep = ",", header=TRUE, stringsAsFactors = FALSE, strip.white=TRUE, na.strings = c("NA", " NA"))
