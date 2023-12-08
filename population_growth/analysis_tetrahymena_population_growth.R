@@ -40,13 +40,14 @@ conversionPixelPerMicrometre <- sqrt(779441.5)/2/1000
 saveFigures <- TRUE
 skipMotherCulture <- TRUE # whether to skip the mother culture from this analysis
 includeBootstrap <- TRUE # whether to run a bootstrap on the fitted thermal response curve
-dev.off() # sometimes R studio stops showing plots (possibly because you call other devices for pdf)
+if(!is.null(dev.list())) dev.off() # sometimes R studio stops showing plots (possibly because you call other devices for pdf)
 
 conversionMillilitresPerPixel <-  4 * 10^-4 / 779441.5
 # the volume in which the cells are counted depends on the area selected under the microscope in pixels (d1$AreaPixels). Each square is 0.1 microliters, or 10^-4 milliliters and 4 squares are together 779441 pixels square: (X px) * (4 sq) * (10^-4 ml / sq) / (779441 px) = (Y ml)
 
-
 fileName <- "/Tetrahymena/population_growth/Tetrahymena_pop_growth.csv"
+setwd(dirname(fileName))
+allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
 setwd(dirname(fileName))
 allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
 
@@ -104,9 +105,9 @@ allExperimentResults <- cbind(allExperimentResults, newColumns, deparse.level = 
 
 allExperimentResults$volMl <- allExperimentResults$areaPx * conversionMillilitresPerPixel
 
-fileNameStartingDensities <- "/Tetrahymena/population_growth/Starting_Densities_for_Growth_Experiment.csv"
+fileNameStartingDensities <- "/Users/perna/Dropbox/tetrahymena_results/estimates_population_growth_2021/Starting_Densities_for_Growth_Experiment.csv"
 startingDensities <- read.table(file = fileNameStartingDensities, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
-fileNameStartingDensities30deg <- "/Tetrahymena/population_growth/Starting_Densities_for_Growth_Experiment_30deg.csv"
+fileNameStartingDensities30deg <- "/Users/perna/Dropbox/tetrahymena_results/estimates_population_growth_2021/Starting_Densities_for_Growth_Experiment_30deg.csv"
 startingDensities30deg <- read.table(file = fileNameStartingDensities30deg, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
 
 
@@ -248,7 +249,7 @@ for (aaa in 1:length(allTAdaptation))
       
       
       print(
-         ggplot(tempDataset, aes(x=incubationDuration, y=log10(Particle_manual_count/volMl), colour=as.factor(tTest))) +
+        ggplot(tempDataset, aes(x=incubationDuration, y=log10(Particle_manual_count/volMl), colour=as.factor(tTest))) +
           geom_point(size=4) + 
           # geom_jitter() + 
           geom_smooth(method=lm, formula=' y ~ x', se=FALSE, fullrange=TRUE) + 
@@ -278,7 +279,7 @@ for (aaa in 1:length(allTAdaptation))
       
       if(!require(dplyr)){install.packages('dplyr')}
       d <- currentCondition %>%
-        select("line", "tAdaptation", "growthRate", "tTest")%>%
+        dplyr::select("line", "tAdaptation", "growthRate", "tTest")%>%
         dplyr::rename(
           curve_id = line,
           growth_temp = tAdaptation,
@@ -429,7 +430,7 @@ for (aaa in 1:length(allTAdaptation))
     
     if(!require(dplyr)){install.packages('dplyr')}
     d <- currentCondition %>%
-      select("line", "tAdaptation", "growthRate", "tTest")%>%
+      dplyr::select("line", "tAdaptation", "growthRate", "tTest")%>%
       dplyr::rename(
         curve_id = line,
         growth_temp = tAdaptation,
@@ -493,7 +494,7 @@ for (aaa in 1:length(allTAdaptation))
       mutate_all(round, 2)
     
     calculatedFitParameters$tAdaptation <- allTAdaptation[aaa]
-    calculatedFitParameters$line <- allLines[lll]
+    calculatedFitParameters$line <- "all"
     calculatedFitParameters$mediumConcentration <- allMediumConcentrations[mmm]
     
     # # If the fit failed
@@ -1005,7 +1006,7 @@ if (includeBootstrap)
     theme_classic(base_size=18) +
     theme(legend.position = "none") +
     labs(color = "Conc.")  # this specifies a custom legend
-    # ggtitle(paste("Population growth at reference temperature (", referenceTemperature, "°C)", sep=""))
+  # ggtitle(paste("Population growth at reference temperature (", referenceTemperature, "°C)", sep=""))
   
   
   if (saveFigures)
@@ -1053,9 +1054,9 @@ plotG1
 
 
 if (saveFigures){
-    ggsave(file="figure_fitted_growth_vs_temp_all.png", dpi = 600, width = 12, height = 10, units = "cm")
-    ggsave(file="figure_fitted_growth_vs_temp_all.eps", device="eps", dpi = 1200, width = 12, height = 10, units = "cm")
-    library(Cairo)
-    ggsave(file="figure_fitted_growth_vs_temp_all.pdf", device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
+  ggsave(file="figure_fitted_growth_vs_temp_all.png", dpi = 600, width = 12, height = 10, units = "cm")
+  ggsave(file="figure_fitted_growth_vs_temp_all.eps", device="eps", dpi = 1200, width = 12, height = 10, units = "cm")
+  library(Cairo)
+  ggsave(file="figure_fitted_growth_vs_temp_all.pdf", device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
 }
 
