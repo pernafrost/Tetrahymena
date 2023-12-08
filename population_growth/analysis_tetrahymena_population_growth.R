@@ -48,9 +48,6 @@ conversionMillilitresPerPixel <-  4 * 10^-4 / 779441.5
 fileName <- "/Tetrahymena/population_growth/Tetrahymena_pop_growth.csv"
 setwd(dirname(fileName))
 allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
-setwd(dirname(fileName))
-allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
-
 
 
 # some cleaning out of comments
@@ -105,9 +102,9 @@ allExperimentResults <- cbind(allExperimentResults, newColumns, deparse.level = 
 
 allExperimentResults$volMl <- allExperimentResults$areaPx * conversionMillilitresPerPixel
 
-fileNameStartingDensities <- "/Users/perna/Dropbox/tetrahymena_results/estimates_population_growth_2021/Starting_Densities_for_Growth_Experiment.csv"
+fileNameStartingDensities <- "/Tetrahymena/population_growth/Starting_Densities_for_Growth_Experiment.csv"
 startingDensities <- read.table(file = fileNameStartingDensities, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
-fileNameStartingDensities30deg <- "/Users/perna/Dropbox/tetrahymena_results/estimates_population_growth_2021/Starting_Densities_for_Growth_Experiment_30deg.csv"
+fileNameStartingDensities30deg <- "/Tetrahymena/population_growth/Starting_Densities_for_Growth_Experiment_30deg.csv"
 startingDensities30deg <- read.table(file = fileNameStartingDensities30deg, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
 
 
