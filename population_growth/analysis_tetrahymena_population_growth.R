@@ -359,6 +359,58 @@ for (aaa in 1:length(allTAdaptation))
       
       print(fit)
       
+      
+      
+      if (includeBootstrap)
+      {
+        library(minpack.lm)
+        # refit model using nlsLM
+        fit_nlsLM <- minpack.lm::nlsLM(rate~sharpeschoolhigh_1981(temp = temp, r_tref,e,eh,th, tref = 20),
+                                       data = d,
+                                       start = coef(fit),
+                                       lower = get_lower_lims(d$temp, d$rate, model_name = 'sharpeschoolhigh_1981'),
+                                       upper = get_upper_lims(d$temp, d$rate, model_name = 'sharpeschoolhigh_1981'),
+                                       weights = rep(1, times = nrow(d)))        
+        
+        library(car)
+        # bootstrap using case resampling
+        # boot1 <- Boot(fit_nlsLM, method = 'case')
+        boot1 <- Boot(fit_nlsLM, method = 'residual')
+        
+        # create predictions of each bootstrapped model
+        boot1_preds <- boot1$t %>%
+          as.data.frame() %>%
+          drop_na() %>%
+          dplyr::mutate(iter = 1:n()) %>%
+          group_by_all() %>%
+          do(data.frame(temp = seq(10, 40, 0.5))) %>% 
+          ungroup() %>%
+          dplyr::mutate(pred = sharpeschoolhigh_1981(temp, r_tref, e, eh, th, tref = 20))
+        
+        # calculate bootstrapped confidence intervals
+        boot1_conf_preds <- group_by(boot1_preds, temp) %>%
+          dplyr::summarise(conf_lower = quantile(pred, 0.025), conf_upper = quantile(pred, 0.975)) %>%
+          ungroup()
+        
+        # exclude improbable numbers in which the t_max is less than 25 degrees
+        # as when the max is too low, then very few data points contribute to the actual
+        # activation energy (most of the curve is deactivation)
+        boot1$t <- boot1$t[boot1$t[,4]>25,]
+        
+        CI_r_tref <- quantile(boot1$t[,1], c(0.025,0.975), na.rm=TRUE)
+        CI_e_from_fit <- quantile(boot1$t[,2], c(0.025,0.975), na.rm=TRUE)
+        se_e_from_fit <- sd(boot1$t[,2], na.rm=TRUE) / sqrt(sum(is.finite(boot1$t[,2])))
+        sd_e_from_fit <- sd(boot1$t[,2], na.rm=TRUE)
+        sd_r_tref <- sd(boot1$t[,1], na.rm=TRUE)
+        
+        calculatedFitParameters <- cbind(calculatedFitParameters, data.frame(r_tref_0025=CI_r_tref[1], r_tref_0975=CI_r_tref[2], e_from_fit_0025=CI_e_from_fit[1], e_from_fit_0975=CI_e_from_fit[2], sd_e_from_fit, sd_r_tref))
+        
+      }
+      
+      
+      
+      
+      
       if (iteration == 1)
       {
         allFitResults <- calculatedFitParameters[0,]
