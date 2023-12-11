@@ -58,6 +58,9 @@ newColumns <- data.frame(tAdaptation = as.numeric(newColumns[,1]),
 allExperimentResults <- cbind(allExperimentResults, newColumns, deparse.level = 1, stringsAsFactors = default.stringsAsFactors())
 # sapply(allExperimentResults, class)
 
+# check if the data are for the mother culture
+allExperimentResults$isMotherCulture <- (allExperimentResults$line == 1 | allExperimentResults$line == 2)
+
 
 names(allExperimentResults)
 
@@ -73,10 +76,10 @@ for (aaa in 1:length(allTAdaptation))
     allLines <- sort(unique(allExperimentResults$line[allExperimentResults$tAdaptation == allTAdaptation[aaa] & allExperimentResults$mediumConcentration == allMediumConcentrations[mmm]]), decreasing=TRUE)
     for (lll in 1:length(allLines))
     {
-      if (skipMotherCulture & is.finite(as.numeric(allLines[lll])))
-      {
-        next
-      }
+      # if (skipMotherCulture & is.finite(as.numeric(allLines[lll])))
+      # {
+      #   next
+      # }
       
       print(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll]))
       currentTitle <- paste("aaaaa_", allTAdaptation[aaa], "_", allMediumConcentrations[mmm], "_", allLines[lll], sep="")
@@ -84,9 +87,9 @@ for (aaa in 1:length(allTAdaptation))
       
       iteration <- iteration + 1
       
-
+      
       currentCondition <-subset(allExperimentResults, tAdaptation == allTAdaptation[aaa] & mediumConcentration == allMediumConcentrations[mmm] & line ==  allLines[lll])
-
+      
       
       
       
@@ -153,7 +156,7 @@ for (aaa in 1:length(allTAdaptation))
       }
       
       d <- rbind(d, currentConditionTopSpeedReasonableTemperature)
-
+      
       
       
       
@@ -167,6 +170,15 @@ currentTitle <- "figure_cell"
 
 markerColours = c("#A3A3A3", "#666666", "#000000", "#FF00FF")
 markerShapes = c(16,17,15,4)
+
+d1 <- d # make a copy of the data frame including both 
+# mother culture and subcultures
+
+if (skipMotherCulture)
+{
+  d <- subset(d, isMotherCulture == FALSE)
+}
+
 
 ggplot(d, aes(x=factor(mediumConcentration), y=medianBEllipse, col=factor(tAdaptation))) +
   geom_boxplot(width=0.6, outlier.shape = NA, colour="black", aes(fill = factor(tAdaptation))) + # add a box plot
@@ -253,10 +265,18 @@ if (saveFigures){
 
 
 
-  # here plot with error bars
-  # Summarize the data in order to plot the data with error bar
-  d2 <- data_summary(d, varname="estimatedlogVolume", 
-                     groupnames=c("tAdaptation", "mediumConcentration"))
+# here plot with error bars
+# Summarize the data in order to plot the data with error bar
+d2 <- data_summary(d1, varname="estimatedlogVolume", 
+                   groupnames=c("tAdaptation", "mediumConcentration", "isMotherCulture"))
+
+d2subculture <- subset(d2, isMotherCulture == FALSE)
+d2mother <- subset(d2, isMotherCulture == TRUE)
+
+if (skipMotherCulture)
+{
+  d2 <- d2subculture
+}
 
 plotG2bis <- ggplot(d2, aes(x=factor(mediumConcentration, levels=sort(unique(as.numeric(mediumConcentration)))), estimatedlogVolume, colour=factor(tAdaptation))) +
   # geom_violin(aes(fill = factor(TreatmentNumber))) +
@@ -281,6 +301,48 @@ if (saveFigures){
   ggsave(file=paste(currentTitle, "_logvolume_errorbar.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
 }
 
+
+# Let's have a look at the changes of size relative to the mother culture
+# assuming that cells have the same size as in the mother culture at time 0,
+# when they first are subcultured into the new medium, and they have their own
+# measured size 30 days later.
+# There are some assumptions here, that these start and end dates are correct (while in
+# practice there is some variation on the dates when the cells are measured
+# and that the trend of log volume vs. time is linear (which probably is not
+# the case as the volume changes a lot at the beginning. However, similar
+# assumptions were also made when fitting linear curves to the population growth
+# rates during adaptation and subcultures.
+# assigne time zero to the mother culture and 30 to the subcultures
+d1$time <- (1 - as.numeric(d1$isMotherCulture))*30
+d1subculture <- subset(d1, isMotherCulture == FALSE)
+d1mother <- subset(d1, isMotherCulture == TRUE)
+
+#define standard error of mean function
+std.error <- function(x) sd(x)/sqrt(length(x))
+
+iteration<-0
+for (aaa in 1:length(allTAdaptation))
+{
+  for (mmm in 1:length(allMediumConcentrations))
+  { 
+    d1current0 <- subset(d1subculture, tAdaptation == allTAdaptation[aaa] & mediumConcentration == allMediumConcentrations[mmm])
+    d1current <- bind_rows(d1current0, d1mother)
+    fittedSizeChange <- lm(formula = estimatedlogVolume ~ time, data=d1current)
+    print(paste("T:", allTAdaptation[aaa], "; C=", allMediumConcentrations[mmm], "; Volume=10^(", round(fittedSizeChange$coefficients[1], 5) , "+", round(fittedSizeChange$coefficients[2],5), "t)", sep=""))
+    deltaBodySize <- data.frame(tAdaptation=allTAdaptation[aaa], mediumConcentration=allMediumConcentrations[mmm], sizeT0=mean(d1mother$estimatedlogVolume), sizeT0sd=sd(d1mother$estimatedlogVolume), sizeT0se=std.error(d1mother$estimatedlogVolume), sizeT30=mean(d1current0$estimatedlogVolume), sizeT30sd=sd(d1current0$estimatedlogVolume), sizeT30se=std.error(d1current0$estimatedlogVolume), fitIntercept=fittedSizeChange$coefficients[1], fitSlope=fittedSizeChange$coefficients[2], row.names=NULL)
+    
+    if (iteration == 0)
+    {
+      bodySizeFitResults <- deltaBodySize
+    } else
+    {
+      bodySizeFitResults <- rbind(bodySizeFitResults, deltaBodySize)
+    }
+    iteration <- iteration + 1
+  }
+}
+
+write.table(bodySizeFitResults, "estimated_body_size_change_during_adaptation.csv", append = FALSE, sep = ",", row.names = FALSE)
 
 
 ################# DP CODE ######################
@@ -323,5 +385,4 @@ emmeans(m, ~ tAdaptation * mediumConcentration)
 
 # cell shrinkage at high nutrients
 (4.30 - 4.23) / 4.30 *100
-
 
