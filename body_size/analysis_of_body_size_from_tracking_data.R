@@ -329,8 +329,19 @@ for (aaa in 1:length(allTAdaptation))
     d1current <- bind_rows(d1current0, d1mother)
     fittedSizeChange <- lm(formula = estimatedlogVolume ~ time, data=d1current)
     print(paste("T:", allTAdaptation[aaa], "; C=", allMediumConcentrations[mmm], "; Volume=10^(", round(fittedSizeChange$coefficients[1], 5) , "+", round(fittedSizeChange$coefficients[2],5), "t)", sep=""))
-    deltaBodySize <- data.frame(tAdaptation=allTAdaptation[aaa], mediumConcentration=allMediumConcentrations[mmm], sizeT0=mean(d1mother$estimatedlogVolume), sizeT0sd=sd(d1mother$estimatedlogVolume), sizeT0se=std.error(d1mother$estimatedlogVolume), sizeT30=mean(d1current0$estimatedlogVolume), sizeT30sd=sd(d1current0$estimatedlogVolume), sizeT30se=std.error(d1current0$estimatedlogVolume), fitIntercept=fittedSizeChange$coefficients[1], fitSlope=fittedSizeChange$coefficients[2], row.names=NULL)
-    
+    deltaBodySize <- data.frame(tAdaptation=allTAdaptation[aaa], 
+                                mediumConcentration=allMediumConcentrations[mmm], 
+                                sizeT0=mean(d1mother$estimatedlogVolume), 
+                                sizeT0sd=sd(d1mother$estimatedlogVolume), 
+                                sizeT0se=std.error(d1mother$estimatedlogVolume), 
+                                sizeT30=mean(d1current0$estimatedlogVolume), 
+                                sizeT30sd=sd(d1current0$estimatedlogVolume), 
+                                sizeT30se=std.error(d1current0$estimatedlogVolume), 
+                                fitIntercept=fittedSizeChange$coefficients[1], 
+                                fitSlope=fittedSizeChange$coefficients[2], 
+                                fitInterceptSe=coefficients(summary(fittedSizeChange))[1,2],
+                                fitSlopeSe=coefficients(summary(fittedSizeChange))[2,2],
+                                row.names=NULL)    
     if (iteration == 0)
     {
       bodySizeFitResults <- deltaBodySize
