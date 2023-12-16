@@ -1256,7 +1256,7 @@ aMA<- a[seq(2,length(a), by=4)]# this is the MA
 median(aMA)
 aSMA<- a[seq(3,length(a), by=4)]# this is the SMA
 median(aSMA)
-aRMA<- a[seq(3,length(a), by=4)]# this is the RMA
+aRMA<- a[seq(4,length(a), by=4)]# this is the RMA
 median(aRMA)
 
 
