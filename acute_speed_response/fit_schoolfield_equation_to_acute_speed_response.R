@@ -1252,12 +1252,13 @@ if (saveFigures){
 a <-unlist(allFittedLogSpeedVsLogVolume, recursive=FALSE)
 aOLS<- a[seq(1,length(a), by=4)]# this is the ordinary LS
 median(aOLS)
-aMA<- a[seq(2,length(a), by=4)]# this is the ordinary LS
+aMA<- a[seq(2,length(a), by=4)]# this is the MA
 median(aMA)
-aSMA<- a[seq(3,length(a), by=4)]# this is the ordinary LS
+aSMA<- a[seq(3,length(a), by=4)]# this is the SMA
 median(aSMA)
-aRMA<- a[seq(3,length(a), by=4)]# this is the ordinary LS
+aRMA<- a[seq(3,length(a), by=4)]# this is the RMA
 median(aRMA)
+
 
 
 
