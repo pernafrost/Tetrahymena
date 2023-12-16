@@ -1,5 +1,5 @@
 rm(list=ls()) # clean memory
-# read the results again
+if(!is.null(dev.list())) dev.off()
 
 
 
@@ -36,6 +36,9 @@ data_summary <- function(data, varname, groupnames){
 saveFigures <- TRUE
 combineLinesTogether <- TRUE # whether to analyse all experimental lines together or each independently
 includeBootstrap <- TRUE # whether to run a bootstrap on the fitted thermal response curve
+includeStartingData <- TRUE # In some conditions, we did not measure the body size of 
+# cultures tested at the same temperature at which they were adapted. We could
+# complement these data from other measurements
 
 # dev.off()
 
@@ -51,8 +54,54 @@ skipMotherCulture <- TRUE # whether to skip the mother culture from this analysi
 
 
 fileName <- "~/Tetrahymena/longer_term_speed_response/track_analysis_individual_particles_long_term_response.csv"
+if (includeStartingData == TRUE)
+{
+  fileNameStartingData <- "Tetrahymena/acute_speed_response/track_analysis_results_individual_particles.csv" # file.choose() # ask the user to select a file name.
+  allExperimentResultsStartingData <- read.table(file = fileNameStartingData, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
+  
+  library("stringr")
+  # Extract information from the string in the "fileName" field
+  # newColumns <- str_split_fixed(as.character(str_trim(tolower(allExperimentResults$fileName))), "/adapted|_tested|_group|diluted", 5)[,2:4]
+  
+  newColumns <- str_split_fixed(as.character(str_trim(tolower(basename(allExperimentResultsStartingData$fileName)))), "_|_tested_", n=Inf)[,c(2,3,4,6)]
+  
+  # remove c for degrees celsius and remove bis from the line
+  newColumns[,4] <- str_replace(newColumns[,4], "c", "")
+  newColumns[,3] <- str_replace(newColumns[,3], "bis", "")
+  newColumns[,4] <- str_replace(newColumns[,4], "bis", "")
+  
+  # class(newColumns) <- "numeric"
+  newColumns <- data.frame(tAdaptation = as.numeric(newColumns[,1]), 
+                           mediumConcentration = as.numeric(newColumns[,2]),
+                           tTest = as.numeric(newColumns[,4]), 
+                           line = newColumns[,3],
+                           incubationDuration = rep(0,length(newColumns[,1])),
+                           repetition = rep(0,length(newColumns[,1])))
+  # colnames(newColumns) <- c("tAdaptation", "tTest", "line")
+  
+  # add the new columns to the original table
+  allExperimentResultsStartingData <- cbind(allExperimentResultsStartingData, newColumns, deparse.level = 1, stringsAsFactors = default.stringsAsFactors())
+  # sapply(allExperimentResults, class)
+  
+  # check if the data are for the mother culture and remove them
+  allExperimentResultsStartingData <- subset(allExperimentResultsStartingData, line != 1 & line != 2)
+  # also exclude the data in which the tTest is very different from the tAdaptation (even if in
+  # this dataset the tTest is for an acute response
+  allExperimentResultsStartingData <- subset(allExperimentResultsStartingData, abs(tTest - tAdaptation) <=5 ) # tTest not too different from adaptation temperature
+  
+  # given that tTest here is just for a very short-term exposure, while in all
+  # the other data tTest is for at least a few days, I re-assign the values of 
+  # tTest before merging the datasets
+  allExperimentResultsStartingData$tTest <- allExperimentResultsStartingData$tAdaptation
+  
+  
+  names(allExperimentResultsStartingData)
+}
+
 workingDir <- "~/Tetrahymena/body_size"
 setwd(workingDir)
+
+# read the data for long-term exposure to temperature
 allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
 
 
@@ -79,6 +128,13 @@ newColumns <- data.frame(tAdaptation = as.numeric(newColumns[,1]),
 # add the new columns to the original table
 allExperimentResults <- cbind(allExperimentResults, newColumns, deparse.level = 1, stringsAsFactors = default.stringsAsFactors())
 # sapply(allExperimentResults, class)
+
+# merge the starting data with the new data
+if (includeStartingData == TRUE)
+{
+  allExperimentResults <- rbind(allExperimentResults, allExperimentResultsStartingData)
+}
+
 
 allExperimentResults$logSpeed <- log10(allExperimentResults$medianSpeed)
 
@@ -128,6 +184,8 @@ plotCounter1 <- 1
 plotCounter2 <- 1
 plotCounter3 <- 1
 plotCounter4 <- 1
+plotListOverTime = list()
+plotCounterOverTime <- 1
 iteration = 0
 for (aaa in 1:length(allTAdaptation))
 {
@@ -202,7 +260,7 @@ for (aaa in 1:length(allTAdaptation))
         # theme(legend.position = "none") + 
         ggtitle(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll])) +
         scale_color_continuous() +
-        labs(color="Area:")
+        labs(color="Speed:")
       # scale_color_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00")) # this is the zissou1 palette
       if (saveFigures){
         ggsave(file=paste(currentTitle, "_area_vs_temp_jitter.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
@@ -247,7 +305,71 @@ for (aaa in 1:length(allTAdaptation))
         scale_color_continuous()
       if (saveFigures){
         ggsave(file=paste(currentTitle, "_logVolume_vs_temp.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
-      } 
+      }
+      
+      ggplot(currentConditionTopSpeed, aes(x=tTest, y=estimatedLogVolume, color=medianSpeed)) +
+        geom_jitter(position = position_jitter(height = 0, width = .5)) + 
+        scale_y_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3))) +
+        scale_x_continuous(name="tested temperature", limits=c(10, 32.5)) +
+        theme_classic(base_size = 15) +
+        # theme(legend.position = "none") + 
+        ggtitle(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll])) +
+        scale_color_continuous() +
+        labs(color="speed:")
+      
+      if (saveFigures){
+        ggsave(file=paste(currentTitle, "_logVolume_vs_temp_jitter.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
+      }
+      
+      ### Look at changes of volume over time
+      
+      # I first group together times that are on the same day
+      currentConditionTopSpeed$incubationDurationInDays <- round((currentConditionTopSpeed$incubationDuration)/24)
+      # currentConditionTopSpeed$tTest_as_factor <- factor(currentConditionTopSpeed$tTest, levels=paste(as.character(sort(unique(currentConditionTopSpeed$tTest)))))
+      currentConditionTopSpeed$tTest_as_factor <- factor(currentConditionTopSpeed$tTest, levels=as.character(seq(12.5, 30, by=2.5)))
+      
+      currentConditionTopSpeedSummary <- data_summary(currentConditionTopSpeed, varname="estimatedLogVolume", 
+                                                      groupnames=c("incubationDurationInDays", "tTest_as_factor", "tAdaptation", "mediumConcentration"))
+      
+      # if (plotCounterOverTime == 1)
+      # {
+      #   combinedCurrentConditionTopSpeedSummary <- currentConditionTopSpeedSummary
+      # } else{
+      #   combinedCurrentConditionTopSpeedSummary <- rbind(combinedCurrentConditionTopSpeedSummary, currentConditionTopSpeedSummary)
+      # }
+      
+      plotColours <- rep(c("#3B9AB2", "#EBCC2A", "#F21A00"),5)
+      markerShapes = c(21, 24, 22, 4)
+      
+      plotOverTime <- ggplot(currentConditionTopSpeedSummary, aes(x=incubationDurationInDays, y=estimatedLogVolume)) + # , color=tTest_as_factor)) +
+        geom_hline(yintercept=currentConditionTopSpeedSummary$estimatedLogVolume[currentConditionTopSpeedSummary$tTest_as_factor == allTAdaptation[aaa] & currentConditionTopSpeedSummary$incubationDurationInDays == 0], colour=plotColours[aaa]) +
+        geom_errorbar(aes(ymin=estimatedLogVolume-sd, ymax=estimatedLogVolume+sd), width=1.3) + 
+        geom_point(size=3, color="black", fill=plotColours[aaa], shape=markerShapes[mmm]) + 
+        # geom_line() +
+        # geom_smooth(method=lm, formula='y~x', se=FALSE) + # geom_smooth should be done on the original data rather than on these data with errorbar
+        # scale_y_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3))) +
+        scale_y_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3)), limits=c(3.8, 4.8), sec.axis = sec_axis(trans=~.*1, name=paste("T:", allTAdaptation[aaa], "°C [", allMediumConcentrations[mmm], "%]", sep="") )) +
+        scale_x_continuous(name="Incubation duration (days)", limits=c(-2,10), breaks=seq(0,10,by=5)) +
+        theme_classic(base_size = 15) +
+        theme(axis.ticks.y.right = element_blank(), axis.text.y.right = element_blank(), axis.line.y.right=element_blank()) +
+        # theme(legend.position = "none") + 
+        # ggtitle(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll])) +
+        # scale_colour_manual(values=c("#3B9AB2", "#5DAABC", "#88BAAE", "#CAC656", "#E8C31E", "#E2B306", "#E86F00", "#F21A00")) +
+        scale_color_manual(values=plotColours) + # this is the zissou1 palette
+        scale_shape_manual(values=markerShapes) + # shapes for the markers
+        facet_grid(cols=vars(tTest_as_factor),drop=FALSE) +
+        labs(color="T test:")
+      
+      plotOverTime
+      plotListOverTime[[plotCounterOverTime]] <- plotOverTime
+      plotCounterOverTime <- plotCounterOverTime + 1
+      
+      if (saveFigures){
+        library(Cairo)
+        ggsave(file=paste(currentTitle, "_logVolume_vs_time.png", sep=""), dpi = 600, width = 20, height = 8, units = "cm")
+        ggsave(file=paste(currentTitle, "_logVolume_vs_time.eps", sep=""), device="eps", dpi = 600, width = 20, height = 8, units = "cm")
+        ggsave(file=paste(currentTitle, "_logVolume_vs_time.pdf", sep=""), device=cairo_pdf, dpi = 600, width = 20, height = 8, units = "cm")
+      }
       
       ggplot(currentConditionTopSpeed, aes(x=tTest, y=medianElongation, color=medianSpeed)) +
         geom_jitter(position = position_jitter(height = 0, width = .5)) + 
@@ -267,7 +389,7 @@ for (aaa in 1:length(allTAdaptation))
         ggsave(file=paste(currentTitle, "_elongation_vs_temp_jitter_color_speed.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
       }
       
-    
+      
       # currentConditionTopSpeed$estimatedVolume <- (4/3 * pi* currentConditionTopSpeed$medianBEllipse * currentConditionTopSpeed$medianAEllipse * currentConditionTopSpeed$medianAEllipse / 8)
       ggplot(currentConditionTopSpeed, aes(x=tTest, y=estimatedVolume, color=medianSpeed)) +
         geom_jitter(position = position_jitter(height = 0, width = .5)) + 
@@ -362,7 +484,7 @@ for (aaa in 1:length(allTAdaptation))
       
       if(!require(dplyr)){install.packages('dplyr')}
       d <- currentConditionTopSpeed %>% 
-        select("line", "tAdaptation", "oneOverVolume", "tTest", "estimatedVolume")%>%
+        dplyr::select("line", "tAdaptation", "oneOverVolume", "tTest", "estimatedVolume")%>%
         dplyr::rename(
           curve_id = line,
           growth_temp = tAdaptation,
@@ -583,7 +705,7 @@ for (aaa in 1:length(allTAdaptation))
       
       
       
-   
+      
       
       # Summarize the data in order to plot the data with error bar
       d2 <- data_summary(d, varname="rate", 
@@ -607,7 +729,7 @@ for (aaa in 1:length(allTAdaptation))
         theme_classic(base_size = 14) +
         scale_x_continuous(name="Temp. (°C)",  limits=c(10, 32.5)) +
         scale_y_continuous(name=expression(paste("1/V (",  mu, 'm'^-3,")", sep="")), lim=c(0, 1.5e-4))
-        # ggtitle(paste("T:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; L: ", allLines[lll]))
+      # ggtitle(paste("T:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; L: ", allLines[lll]))
       
       thisPlot
       if (saveFigures){
@@ -767,7 +889,6 @@ if(saveFigures)
   }
 }
 
-
 if (combineLinesTogether == FALSE)
 {
   # combine together the two plots into a single figure
@@ -822,8 +943,47 @@ if (combineLinesTogether == FALSE)
 }
 
 
+fullFigureOverTime <- ggarrange(plotListOverTime[[1]]+theme(axis.title.x = element_blank(), strip.background=element_blank(), strip.text=element_blank()), plotListOverTime[[2]]+theme(axis.title.x = element_blank(), strip.background=element_blank(), strip.text=element_blank()), plotListOverTime[[3]]+theme(axis.title.x = element_blank(), strip.background=element_blank(), strip.text=element_blank()),
+                                plotListOverTime[[4]]+theme(axis.title.x = element_blank(), strip.background=element_blank(), strip.text=element_blank()), plotListOverTime[[5]]+theme(axis.title.x = element_blank(), strip.background=element_blank(), strip.text=element_blank()), plotListOverTime[[6]]+theme(axis.title.x = element_blank(), strip.background=element_blank(), strip.text=element_blank()),
+                                plotListOverTime[[7]]+theme(axis.title.x = element_blank(), strip.background=element_blank(), strip.text=element_blank()), plotListOverTime[[8]]+theme(axis.title.x = element_blank(), strip.background=element_blank(), strip.text=element_blank()), plotListOverTime[[9]]+theme(axis.title.x = element_blank(), strip.background=element_blank(), strip.text=element_blank()),
+                                ncol = 1, nrow = 9, common.legend=TRUE)
 
+fullFigureOverTime
 
+if(saveFigures)
+{
+  if (combineLinesTogether)
+  {
+    ggsave(file="figure_log_volume_over_time_all.png", dpi = 600, width = 20, height = 72, units = "cm")
+    ggsave(file="figure_log_volume_over_time_all.eps", device="eps", dpi = 1200, width = 20, height = 72, units = "cm")
+    ggsave(file="figure_log_volume_over_time_all.pdf", device=cairo_pdf, dpi = 1200, width = 20, height = 72, units = "cm")
+  }
+}
+
+# # Alternative approach to get the same figure:
+# 
+# plotColours <- rep(c("#3B9AB2", "#EBCC2A", "#F21A00"),5)
+# markerShapes = c(21, 24, 22, 4)
+# 
+# plotOverTime <- ggplot(combinedCurrentConditionTopSpeedSummary, aes(x=incubationDurationInDays, y=estimatedLogVolume)) + # , color=tTest_as_factor)) +
+#   geom_hline(yintercept=combinedCurrentConditionTopSpeedSummary$estimatedLogVolume[combinedCurrentConditionTopSpeedSummary$tTest_as_factor == allTAdaptation[aaa] & combinedCurrentConditionTopSpeedSummary$incubationDurationInDays == 0], colour=plotColours[aaa]) +
+#   geom_errorbar(aes(ymin=estimatedLogVolume-sd, ymax=estimatedLogVolume+sd), width=1.3) + 
+#   geom_point(size=3, color="black", fill=plotColours[aaa], shape=markerShapes[mmm]) + 
+#   # geom_line() +
+#   # geom_smooth(method=lm, formula='y~x', se=FALSE) + # geom_smooth should be done on the original data rather than on these data with errorbar
+#   # scale_y_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3))) +
+#   scale_y_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3)), limits=c(3.8, 4.8), sec.axis = sec_axis(trans=~.*1, name=paste("T:", allTAdaptation[aaa], "°C [", allMediumConcentrations[mmm], "%]", sep="") )) +
+#   scale_x_continuous(name="Incubation duration (days)", limits=c(-2,10), breaks=seq(0,10,by=5)) +
+#   theme_classic(base_size = 15) +
+#   theme(axis.ticks.y.right = element_blank(), axis.text.y.right = element_blank(), axis.line.y.right=element_blank()) +
+#   # theme(legend.position = "none") + 
+#   # ggtitle(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll])) +
+#   # scale_colour_manual(values=c("#3B9AB2", "#5DAABC", "#88BAAE", "#CAC656", "#E8C31E", "#E2B306", "#E86F00", "#F21A00")) +
+#   scale_color_manual(values=plotColours) + # this is the zissou1 palette
+#   scale_shape_manual(values=markerShapes) + # shapes for the markers
+#   facet_grid(cols=vars(tTest_as_factor), rows=vars(mediumConcentration), drop=FALSE) +
+#   labs(color="T test:")
+# plotOverTime
 
 # plot data and model fit
 ggplot(allFitResults, aes(x=tAdaptation, y=e_from_fit, color=factor(mediumConcentration), shape=factor(mediumConcentration), label=factor(line))) +
@@ -899,7 +1059,7 @@ ggplot(allFitResults, aes(x=tAdaptation, y=r_tref, color=factor(mediumConcentrat
   scale_color_manual(values=c("#A3A3A3", "#666666", "#000000")) +
   scale_fill_manual(values=c("#A3A3A3", "#666666", "#000000")) +
   scale_y_continuous(name=expression(paste("1/V (",  mu, 'm'^-3,")", sep=""))) +
-scale_x_continuous(name=expression("Adaptation temperature (ºC)"), limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
+  scale_x_continuous(name=expression("Adaptation temperature (ºC)"), limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
   theme_classic(base_size=12) +
   theme(legend.position = "none") +
   labs(color = "Conc.") + # this specifies a custom legend
@@ -977,8 +1137,8 @@ if (includeBootstrap)
     theme_classic(base_size=18) +
     theme(legend.position = "none") +
     labs(color = "Conc.") # + # this specifies a custom legend
-
-
+  
+  
   # plot data and model fit
   ggplot(allFitResults, aes(x=tAdaptation, y=r_tref, color=factor(mediumConcentration), fill=factor(mediumConcentration + tAdaptation*100), shape=factor(mediumConcentration), label=factor(line))) +
     geom_errorbar(aes(ymin=r_tref - sd_r_tref, ymax=r_tref + sd_r_tref), width=0, position=position_dodge(width=2)) + 
@@ -992,7 +1152,7 @@ if (includeBootstrap)
     theme_classic(base_size=18) +
     theme(legend.position = "none") +
     labs(color = "Conc.") # + # this specifies a custom legend
-    # ggtitle(paste("1/V at reference temperature (", referenceTemperature, "°C)", sep=""))
+  # ggtitle(paste("1/V at reference temperature (", referenceTemperature, "°C)", sep=""))
   
   if (saveFigures)
   {
@@ -1083,5 +1243,4 @@ if (saveFigures){
   }
 }
 
-
-
+# sessionInfo()
