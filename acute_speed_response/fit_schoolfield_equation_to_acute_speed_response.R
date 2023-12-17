@@ -272,12 +272,12 @@ for (aaa in 1:length(allTAdaptation))
         geom_smooth(method="lm", se=FALSE, formula=y ~ x, colour="red", na.rm=TRUE) + 
         scale_y_continuous(name=expression(paste("log10(speed) (", mu, "m/s)"))) +
         scale_x_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3))) +
-        theme_classic(base_size = 15) +
+        theme_classic(base_size = 10) +
         theme(legend.position = "none") + 
         ggtitle(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll])) +
         scale_color_continuous() +
         coord_fixed() +
-        facet_wrap(vars(tTest))
+        facet_wrap(vars(tTest)) +
         labs(color="T:")
       # scale_color_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00")) # this is the zissou1 palette
       if (saveFigures){
