@@ -288,6 +288,9 @@ for (aaa in 1:length(allTAdaptation))
         for (ttt in sort(unique(currentConditionTopSpeed$tTest)))
         {
         # print(ttt)
+        # exclude high temperature conditions as cells change shape and various things
+        # happen:
+        if (ttt > 30) next
         fitSpeedVsVolume <- lmodel2(formula=estimatedlogVolume ~ logSpeed, data = subset(currentConditionTopSpeed, tTest == ttt), range.y="interval", range.x = "interval", nperm=99)
         # print(fitSpeedVsVolume$regression.results)
         # fitSpeedVsVolume <- lm(formula=estimatedlogVolume ~ logSpeed, data = subset(currentConditionTopSpeed, tTest == ttt))
