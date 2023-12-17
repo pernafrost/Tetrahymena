@@ -1,5 +1,5 @@
 rm(list=ls()) # clean memory
-# read the results again
+if(!is.null(dev.list())) dev.off()
 
 
 
@@ -37,7 +37,6 @@ saveFigures <- TRUE
 combineLinesTogether <- TRUE # whether to analyse all experimental lines together or each independently
 includeBootstrap <- TRUE # whether to run a bootstrap on the fitted thermal response curve
 
-dev.off()
 
 # load packages
 library(rTPC)
@@ -50,7 +49,10 @@ referenceTemperature <- 20 # careful that it is not used in the schoolfield fitt
 skipMotherCulture <- TRUE # whether to skip the mother culture from this analysis
 
 
+
 fileName <- "~/Tetrahymena/longer_term_speed_response/track_analysis_individual_particles.csv"
+setwd(dirname(fileName))
+allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
 setwd(dirname(fileName))
 allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
 
@@ -113,6 +115,9 @@ allExperimentResults$oneOverkTrel <- oneOverkT293 - allExperimentResults$oneOver
 
 
 names(allExperimentResults)
+
+# coefficients of fitted log(speed) vs. log(cell volume)
+allFittedLogSpeedVsLogVolume <- list()
 
 allTAdaptation <- sort(unique(allExperimentResults$tAdaptation))
 plotList = list() # To save the plots in a list
@@ -181,6 +186,10 @@ for (aaa in 1:length(allTAdaptation))
           currentCondition$speedQuantile[currentCondition$tTest == allTTest[ttt] & currentCondition$line==allLinesInsideLoop[iii]] <- speedQuantile
         }
       }
+      
+      currentCondition$estimatedlogVolume <- log10(4/3 * pi* currentCondition$medianBEllipse * currentCondition$medianAEllipse * currentCondition$medianAEllipse / 8)
+      
+      
       currentConditionTopSpeed <- subset(currentCondition, medianSpeed >= speedQuantile)
       
       
@@ -215,7 +224,41 @@ for (aaa in 1:length(allTAdaptation))
         ggsave(file=paste(currentTitle, "_speed_vs_temp_jitter.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
       }
       
+      # a plot to check how speed changes with cell size
+      ggplot(currentConditionTopSpeed, aes(x=estimatedlogVolume, y=logSpeed, color=tTest)) +
+        geom_point() + 
+        # geom_jitter(position = position_jitter(height = 0, width = .3)) +
+        geom_smooth(method="lm", se=FALSE, formula=y ~ x, colour="red", na.rm=TRUE) + 
+        scale_y_continuous(name=expression(paste("log10(speed) (", mu, "m/s)"))) +
+        scale_x_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3))) +
+        theme_classic(base_size = 10) +
+        theme(legend.position = "none") + 
+        ggtitle(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll])) +
+        scale_color_continuous() +
+        coord_fixed() +
+        facet_wrap(vars(tTest)) +
+        labs(color="T:")
+      # scale_color_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00")) # this is the zissou1 palette
+      if (saveFigures){
+        ggsave(file=paste(currentTitle, "_speed_vs_cell_volume.png", sep=""), dpi = 600, width = 12, height = 15, units = "cm")
+      }
       
+      library("lmodel2")
+      for (ttt in sort(unique(currentConditionTopSpeed$tTest)))
+      {
+        # exclude high temperature conditions as cells change shape and various things
+        # happen:
+        if (ttt > 30) next
+        # print(ttt)
+        tryCatch({
+          fitSpeedVsVolume <- lmodel2(formula=estimatedlogVolume ~ logSpeed, data = subset(currentConditionTopSpeed, tTest == ttt), range.y="interval", range.x = "interval", nperm=99)
+          # print(fitSpeedVsVolume$regression.results)
+          # fitSpeedVsVolume <- lm(formula=estimatedlogVolume ~ logSpeed, data = subset(currentConditionTopSpeed, tTest == ttt))
+          # print(coefficients(fitSpeedVsVolume))
+          allFittedLogSpeedVsLogVolume[[length(allFittedLogSpeedVsLogVolume)+1]] <- fitSpeedVsVolume$regression.results$Slope
+          # summary(fitSpeedVsVolume)
+        }, error=function(e){cat("ERROR :",conditionMessage(e), "\n")})
+      }
       
       # I am running this on currentConditionTopSpeed because I think it makes more sense to do it only on the cells
       # that move fast and so are well aligned with the image.
@@ -243,7 +286,6 @@ for (aaa in 1:length(allTAdaptation))
         ggsave(file=paste(currentTitle, "_elongation_vs_temp.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
       }
       
-      currentConditionTopSpeed$estimatedlogVolume <- log10(4/3 * pi* currentConditionTopSpeed$medianBEllipse * currentConditionTopSpeed$medianAEllipse * currentConditionTopSpeed$medianAEllipse / 8)
       ggplot(currentConditionTopSpeed, aes(x=tTest, y=estimatedlogVolume, fill=factor(tTest))) +
         geom_boxplot(width=0.8, outlier.shape = NA) + # add a box plot
         scale_y_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3))) +
@@ -1270,6 +1312,26 @@ if (saveFigures){
     ggsave(file="figure_fitted_speed_long_term_vs_temp.png", dpi = 600, width = 12, height = 10, units = "cm")
   }
 }
+
+
+
+# Look at the data of slope from the fitted models
+a <-unlist(allFittedLogSpeedVsLogVolume, recursive=FALSE)
+aOLS<- a[seq(1,length(a), by=4)]# this is the ordinary LS
+median(aOLS)
+mean(aOLS)
+sd(aOLS)/sqrt(length(aOLS))
+
+print(paste("speed ~ volume^alpha, with alpha=", mean(aOLS), "+-", sd(aOLS)/sqrt(length(aOLS)), sep=""))
+
+quantile(aOLS,c(0.025, 0.975))
+aMA<- a[seq(2,length(a), by=4)]# this is the MA
+median(aMA)
+aSMA<- a[seq(3,length(a), by=4)]# this is the SMA
+median(aSMA)
+aRMA<- a[seq(4,length(a), by=4)]# this is the RMA
+median(aRMA)
+write.csv(aOLS,file="temp_aOLS.csv", row.names=F)
 
 
 
