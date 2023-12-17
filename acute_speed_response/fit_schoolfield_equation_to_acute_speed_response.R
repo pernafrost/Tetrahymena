@@ -1255,13 +1255,17 @@ if (saveFigures){
 a <-unlist(allFittedLogSpeedVsLogVolume, recursive=FALSE)
 aOLS<- a[seq(1,length(a), by=4)]# this is the ordinary LS
 median(aOLS)
+mean(aOLS)
+sd(aOLS)/sqrt(length(aOLS))
+
+print(paste("speed ~ volume^alpha, with alpha=", mean(aOLS), "+-", sd(aOLS)/sqrt(length(aOLS)), sep=""))
+
+quantile(aOLS,c(0.025, 0.975))
 aMA<- a[seq(2,length(a), by=4)]# this is the MA
 median(aMA)
 aSMA<- a[seq(3,length(a), by=4)]# this is the SMA
 median(aSMA)
 aRMA<- a[seq(4,length(a), by=4)]# this is the RMA
 median(aRMA)
-
-
 
 
