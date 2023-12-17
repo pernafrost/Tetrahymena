@@ -1268,4 +1268,9 @@ median(aSMA)
 aRMA<- a[seq(4,length(a), by=4)]# this is the RMA
 median(aRMA)
 
+# If I merge with the other data from the population growth experiment (as I am focusing on cell size only anyway)
+# ff <- file.choose() # read the ff <- "Tetrahymena/population_growth/temp_aOLS.csv"
+# aB <- read.csv(ff)
+# aOLS <- c(t(aB), t(aOLS))
+# print(paste("speed ~ volume^alpha, with alpha=", mean(aOLS), "+-", sd(aOLS)/sqrt(length(aOLS)), sep=""))
 
