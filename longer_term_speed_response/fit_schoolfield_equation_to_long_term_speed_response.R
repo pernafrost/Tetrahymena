@@ -191,7 +191,6 @@ for (aaa in 1:length(allTAdaptation))
       # we might want to filter some days
       # currentConditionTopSpeed <- subset(currentConditionTopSpeed, incubationDuration < 48)
 
-      
       ggplot(currentCondition, aes(x=as.factor(tTest), y=medianSpeed, shape=as.factor(mediumConcentration), color=as.factor(mediumConcentration))) +
         geom_violin() +
         # geom_jitter(position = position_jitter(height = 0, width = .3)) +
