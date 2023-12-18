@@ -246,8 +246,8 @@ for (aaa in 1:length(allTAdaptation))
       {
         # exclude high temperature conditions as cells change shape and various things
         # happen:
-        print("Note that the analysis of speed vs. volume with this dataset should take into account that cells change their volume during the long-term exposure")
-        print("and they may also deplete some of their nutrients, so perhaps the analysis should be done on populations measured on a single day")
+        # print("Note that the analysis of speed vs. volume with this dataset should take into account that cells change their volume during the long-term exposure")
+        # print("and they may also deplete some of their nutrients, so perhaps the analysis should be done on populations measured on a single day")
         if (ttt > 30) next
         # print(ttt)
         tryCatch({
