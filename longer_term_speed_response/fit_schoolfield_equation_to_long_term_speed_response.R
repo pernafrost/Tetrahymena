@@ -49,10 +49,7 @@ referenceTemperature <- 20 # careful that it is not used in the schoolfield fitt
 skipMotherCulture <- TRUE # whether to skip the mother culture from this analysis
 
 
-
 fileName <- "~/Tetrahymena/longer_term_speed_response/track_analysis_individual_particles.csv"
-setwd(dirname(fileName))
-allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
 setwd(dirname(fileName))
 allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
 
@@ -191,7 +188,9 @@ for (aaa in 1:length(allTAdaptation))
       
       
       currentConditionTopSpeed <- subset(currentCondition, medianSpeed >= speedQuantile)
-      
+      # we might want to filter some days
+      # currentConditionTopSpeed <- subset(currentConditionTopSpeed, incubationDuration < 48)
+
       
       ggplot(currentCondition, aes(x=as.factor(tTest), y=medianSpeed, shape=as.factor(mediumConcentration), color=as.factor(mediumConcentration))) +
         geom_violin() +
@@ -248,6 +247,8 @@ for (aaa in 1:length(allTAdaptation))
       {
         # exclude high temperature conditions as cells change shape and various things
         # happen:
+        print("Note that the analysis of speed vs. volume with this dataset should take into account that cells change their volume during the long-term exposure")
+        print("and they may also deplete some of their nutrients, so perhaps the analysis should be done on populations measured on a single day")
         if (ttt > 30) next
         # print(ttt)
         tryCatch({
