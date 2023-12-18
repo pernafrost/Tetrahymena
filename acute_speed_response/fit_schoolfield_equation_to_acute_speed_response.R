@@ -244,8 +244,8 @@ for (aaa in 1:length(allTAdaptation))
       
       if (saveFigures){
         ggsave(file=paste(currentTitle, "_speed_vs_temp_violin.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
-        ggsave(file=paste(currentTitle, "_speed_vs_temp_violin.png", sep=""), device="eps", dpi = 1200, width = 24, height = 20, units = "cm")
-        ggsave(file=paste(currentTitle, "_speed_vs_temp_violin.png", sep=""), device=cairo_pdf, dpi = 1200, width = 24, height = 20, units = "cm")
+        ggsave(file=paste(currentTitle, "_speed_vs_temp_violin.eps", sep=""), device="eps", dpi = 1200, width = 24, height = 20, units = "cm")
+        ggsave(file=paste(currentTitle, "_speed_vs_temp_violin.pdf", sep=""), device=cairo_pdf, dpi = 1200, width = 24, height = 20, units = "cm")
       }
 
       
