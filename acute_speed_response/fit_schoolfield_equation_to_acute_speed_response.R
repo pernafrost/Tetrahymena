@@ -1273,4 +1273,7 @@ median(aRMA)
 # aB <- read.csv(ff)
 # aOLS <- c(t(aB), t(aOLS))
 # print(paste("speed ~ volume^alpha, with alpha=", mean(aOLS), "+-", sd(aOLS)/sqrt(length(aOLS)), sep=""))
-
+#
+# > speed ~ volume^alpha, with alpha=0.294893680191942+-0.0865621756515173
+# > length(aOLS)
+# [1] 432
