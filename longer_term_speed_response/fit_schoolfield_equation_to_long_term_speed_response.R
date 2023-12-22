@@ -55,7 +55,7 @@ skipMotherCulture <- TRUE # whether to skip the mother culture from this analysi
 fileName <- "~/Tetrahymena/longer_term_speed_response/track_analysis_individual_particles.csv"
 if (includeStartingData == TRUE)
 {
-  fileNameStartingData <- "~/Tetrahymena/speed_response/track_analysis_results_individual_particles.csv" # file.choose() # ask the user to select a file name.
+  fileNameStartingData <- "~/Tetrahymena/acute_speed_response/track_analysis_results_individual_particles.csv" # file.choose() # ask the user to select a file name.
   allExperimentResultsStartingData <- read.table(file = fileNameStartingData, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
   
   library("stringr")
