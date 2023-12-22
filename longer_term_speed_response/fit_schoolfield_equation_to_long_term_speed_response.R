@@ -2,9 +2,6 @@ rm(list=ls()) # clean memory
 if(!is.null(dev.list())) dev.off()
 
 
-
-
-
 #################################################################################################################
 # Function to calculate the mean and the standard deviation
 # for each group (useful to combine lines together)
@@ -36,7 +33,14 @@ data_summary <- function(data, varname, groupnames){
 saveFigures <- TRUE
 combineLinesTogether <- TRUE # whether to analyse all experimental lines together or each independently
 includeBootstrap <- TRUE # whether to run a bootstrap on the fitted thermal response curve
-
+includeStartingData <- TRUE # In some conditions, we did not measure the speed of 
+# cultures tested at the same temperature at which they were adapted. We could
+# complement these data from the acute speed responses, focusing on those conditions
+# in which tAdaptation and tTest were the same
+splitByTestingDay <- TRUE # The analysis of speed is based on the 
+# 20% fastest moving cells. Do we want this 20% to be calculated 
+# for each day of testing (of the same replicate line and same other conditions)
+# or instead different testing days are analysed together?
 
 # load packages
 library(rTPC)
@@ -48,8 +52,56 @@ library(ggplot2)
 referenceTemperature <- 20 # careful that it is not used in the schoolfield fitting
 skipMotherCulture <- TRUE # whether to skip the mother culture from this analysis
 
-
 fileName <- "~/Tetrahymena/longer_term_speed_response/track_analysis_individual_particles.csv"
+if (includeStartingData == TRUE)
+{
+  fileNameStartingData <- "~/Tetrahymena/speed_response/track_analysis_results_individual_particles.csv" # file.choose() # ask the user to select a file name.
+  allExperimentResultsStartingData <- read.table(file = fileNameStartingData, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
+  
+  library("stringr")
+  # Extract information from the string in the "fileName" field
+  # newColumns <- str_split_fixed(as.character(str_trim(tolower(allExperimentResults$fileName))), "/adapted|_tested|_group|diluted", 5)[,2:4]
+  
+  newColumns <- str_split_fixed(as.character(str_trim(tolower(basename(allExperimentResultsStartingData$fileName)))), "_|_tested_", n=Inf)[,c(2,3,4,6)]
+  
+  # remove c for degrees celsius and remove bis from the line
+  newColumns[,4] <- str_replace(newColumns[,4], "c", "")
+  newColumns[,3] <- str_replace(newColumns[,3], "bis", "")
+  newColumns[,4] <- str_replace(newColumns[,4], "bis", "")
+  
+  # class(newColumns) <- "numeric"
+  newColumns <- data.frame(tAdaptation = as.numeric(newColumns[,1]), 
+                           mediumConcentration = as.numeric(newColumns[,2]),
+                           tTest = as.numeric(newColumns[,4]), 
+                           line = newColumns[,3],
+                           incubationDuration = rep(0,length(newColumns[,1])),
+                           repetition = rep(0,length(newColumns[,1])))
+  # colnames(newColumns) <- c("tAdaptation", "tTest", "line")
+  
+  # add the new columns to the original table
+  allExperimentResultsStartingData <- cbind(allExperimentResultsStartingData, newColumns, deparse.level = 1, stringsAsFactors = default.stringsAsFactors())
+  # sapply(allExperimentResults, class)
+  
+  # check if the data are for the mother culture and remove them
+  allExperimentResultsStartingData <- subset(allExperimentResultsStartingData, line != 1 & line != 2)
+  
+  # also exclude the data in which the tTest is different from the tAdaptation (even if in
+  # this dataset the tTest is for an acute response
+  # this line is commented, because I can say that as long as I specify that this is 
+  # for an incubationDuration of 0 I can compare the adapted and the original speed
+  # allExperimentResultsStartingData <- subset(allExperimentResultsStartingData, tTest == tAdaptation) # tTest the same as tAdaptation
+  # I only filter high temperatures
+  allExperimentResultsStartingData <- subset(allExperimentResultsStartingData, tTest <= 30 & tTest >=12.5) # tTest not higher than in the long-term data
+  
+  # given that tTest here is just for a very short-term exposure, while in all
+  # the other data tTest is for at least a few days, I re-assign the values of 
+  # tTest before merging the datasets
+  # allExperimentResultsStartingData$tTest <- allExperimentResultsStartingData$tAdaptation
+  
+  
+  names(allExperimentResultsStartingData)
+}
+
 setwd(dirname(fileName))
 allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
 
@@ -77,6 +129,9 @@ newColumns <- data.frame(tAdaptation = as.numeric(newColumns[,1]),
 # add the new columns to the original table
 allExperimentResults <- cbind(allExperimentResults, newColumns, deparse.level = 1, stringsAsFactors = default.stringsAsFactors())
 # sapply(allExperimentResults, class)
+
+# I also group together times that are on the same day
+allExperimentResults$incubationDurationInDays <- round((allExperimentResults$incubationDuration)/24)
 
 allExperimentResults$logSpeed <- log10(allExperimentResults$medianSpeed)
 
@@ -125,6 +180,8 @@ plotCounter1 <- 1
 plotCounter2 <- 1
 plotCounter3 <- 1
 plotCounter4 <- 1
+plotListOverTime = list()
+plotCounterOverTime <- 1
 iteration = 0
 for (aaa in 1:length(allTAdaptation))
 {
@@ -162,10 +219,28 @@ for (aaa in 1:length(allTAdaptation))
         }
       }
       
+      if (includeStartingData == TRUE)
+      {
+        if (combineLinesTogether == FALSE)
+        {
+          currentConditionStartingData <-subset(allExperimentResultsStartingData, tAdaptation == allTAdaptation[aaa] & mediumConcentration == allMediumConcentrations[mmm] & line ==  allLines[lll])
+        } else {
+          currentConditionStartingData <-subset(allExperimentResultsStartingData, tAdaptation == allTAdaptation[aaa] & mediumConcentration == allMediumConcentrations[mmm])
+          if (skipMotherCulture)
+          {
+            currentConditionStartingData <-subset(currentConditionStartingData, is.finite(as.numeric(currentConditionStartingData$line)) == FALSE) 
+          }
+        }
+      }
+      
       # If I further filter the data:
       # keep those that are big enough and that move
       currentCondition <- subset(currentCondition, medianArea > 400 & medianSpeed > 100)
       # currentCondition <- subset(currentCondition, medianArea > 400)
+      if (includeStartingData == TRUE)
+      {
+        currentConditionStartingData <- subset(currentConditionStartingData, medianArea > 400 & medianSpeed > 100)
+      }
       
       # Only keep those that move straight
       # currentCondition <- subset(currentCondition, meanAbsAngle*180/pi < 15)
@@ -174,23 +249,58 @@ for (aaa in 1:length(allTAdaptation))
       allTTest <- unique(currentCondition$tTest)
       # if there are multiple lines combined, calculate the percentile on each line
       allLinesInsideLoop <- unique(currentCondition$line)
+      # check: for most graphs it should be sufficient getting the top speed based
+      # on tTest and replicate line, but in the plots of speed over time
+      # it probably makes sense also getting the quantiles of speed for each day
+      allIncubationDays <- unique(currentCondition$incubationDurationInDays)
       for (iii in 1:length(allLinesInsideLoop))
       {
         for (ttt in 1:length(allTTest))
-        {
+        { 
+          if (splitByTestingDay == TRUE)
+          {
+            for (uuu in 1:length(allIncubationDays))
+            {
+              currentConditionThisTemperatureAndLineAndDay <- subset(currentCondition, tTest == allTTest[ttt] & line == allLinesInsideLoop[iii] & incubationDurationInDays == allIncubationDays[uuu])
+              speedQuantile <- quantile(currentConditionThisTemperatureAndLineAndDay$medianSpeed, probs = 0.80, na.rm = TRUE)
+              currentCondition$speedQuantile[currentCondition$tTest == allTTest[ttt] & currentCondition$line==allLinesInsideLoop[iii] & currentCondition$incubationDurationInDays == allIncubationDays[uuu]] <- speedQuantile
+            }
+          }
           currentConditionThisTemperatureAndLine <- subset(currentCondition, tTest == allTTest[ttt] & line == allLinesInsideLoop[iii])
           speedQuantile <- quantile(currentConditionThisTemperatureAndLine$medianSpeed, probs = 0.80, na.rm = TRUE)
           currentCondition$speedQuantile[currentCondition$tTest == allTTest[ttt] & currentCondition$line==allLinesInsideLoop[iii]] <- speedQuantile
         }
       }
       
+      if (includeStartingData == TRUE)
+      {
+        # Only keep a percentile for each temperature group
+        allTTest <- unique(currentConditionStartingData$tTest)
+        # if there are multiple lines combined, calculate the percentile on each line
+        allLinesInsideLoop <- unique(currentConditionStartingData$line)
+        for (iii in 1:length(allLinesInsideLoop))
+        {
+          for (ttt in 1:length(allTTest))
+          {
+            currentConditionStartingDataThisTemperatureAndLine <- subset(currentConditionStartingData, tTest == allTTest[ttt] & line == allLinesInsideLoop[iii])
+            speedQuantileStartingData <- quantile(currentConditionStartingDataThisTemperatureAndLine$medianSpeed, probs = 0.80, na.rm = TRUE)
+            currentConditionStartingData$speedQuantile[currentConditionStartingData$tTest == allTTest[ttt] & currentConditionStartingData$line==allLinesInsideLoop[iii]] <- speedQuantileStartingData
+          }
+        }
+      }
+      
+      
       currentCondition$estimatedlogVolume <- log10(4/3 * pi* currentCondition$medianBEllipse * currentCondition$medianAEllipse * currentCondition$medianAEllipse / 8)
       
       
       currentConditionTopSpeed <- subset(currentCondition, medianSpeed >= speedQuantile)
+      if (includeStartingData == TRUE)
+      {
+        currentConditionStartingDataTopSpeed <- subset(currentConditionStartingData, medianSpeed >= speedQuantile)
+      }
       # we might want to filter some days
       # currentConditionTopSpeed <- subset(currentConditionTopSpeed, incubationDuration < 48)
-
+      
       ggplot(currentCondition, aes(x=as.factor(tTest), y=medianSpeed, shape=as.factor(mediumConcentration), color=as.factor(mediumConcentration))) +
         geom_violin() +
         # geom_jitter(position = position_jitter(height = 0, width = .3)) +
@@ -222,6 +332,91 @@ for (aaa in 1:length(allTAdaptation))
         ggsave(file=paste(currentTitle, "_speed_vs_temp_jitter.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
       }
       
+      ### Look at changes of speed over time (on different days)
+      
+      # currentConditionTopSpeed$tTest_as_factor <- factor(currentConditionTopSpeed$tTest, levels=paste(as.character(sort(unique(currentConditionTopSpeed$tTest)))))
+      currentConditionTopSpeed$tTest_as_factor <- factor(currentConditionTopSpeed$tTest, levels=as.character(seq(12.5, 30, by=2.5)))
+      
+      currentConditionTopSpeedSummary <- data_summary(currentConditionTopSpeed, varname="medianSpeed",
+                                                      groupnames=c("incubationDurationInDays", "tTest_as_factor", "tAdaptation", "mediumConcentration"))
+      
+      if (includeStartingData == TRUE)
+      {
+        currentConditionStartingDataTopSpeed$incubationDurationInDays <- round((currentConditionStartingDataTopSpeed$incubationDuration)/24)
+        currentConditionStartingDataTopSpeed$tTest_as_factor <- factor(currentConditionStartingDataTopSpeed$tTest, levels=as.character(seq(12.5, 30, by=2.5)))
+        
+        currentConditionStartingDataTopSpeedSummary <- data_summary(currentConditionStartingDataTopSpeed, varname="medianSpeed",
+                                                                    groupnames=c("incubationDurationInDays", "tTest_as_factor", "tAdaptation", "mediumConcentration"))
+      }
+      
+      # if (plotCounterOverTime == 1)
+      # {
+      #   combinedCurrentConditionTopSpeedSummary <- currentConditionTopSpeedSummary
+      # } else{
+      #   combinedCurrentConditionTopSpeedSummary <- rbind(combinedCurrentConditionTopSpeedSummary, currentConditionTopSpeedSummary)
+      # }
+      
+      plotColours <- rep(c("#3B9AB2", "#EBCC2A", "#F21A00"),5)
+      markerShapes = c(21, 24, 22, 4)
+      
+      if (includeStartingData == TRUE)
+      {
+        plotOverTime <- ggplot(currentConditionTopSpeedSummary, aes(x=incubationDurationInDays, y=medianSpeed)) + # , color=tTest_as_factor)) +
+          # geom_hline(yintercept=currentConditionTopSpeedSummary$medianSpeed[currentConditionTopSpeedSummary$tTest_as_factor == allTAdaptation[aaa] & currentConditionTopSpeedSummary$incubationDurationInDays == 0], colour=plotColours[aaa]) +
+          geom_hline(data = currentConditionStartingDataTopSpeedSummary, aes(yintercept = medianSpeed), colour=plotColours[aaa]) +
+          # geom_hline(yintercept=currentConditionTopSpeedSummary$medianSpeed[currentConditionTopSpeedSummary$incubationDurationInDays == 0], colour=plotColours[aaa]) +
+          geom_errorbar(aes(ymin=medianSpeed-sd, ymax=medianSpeed+sd), width=1.3) + 
+          geom_point(size=3, color="black", fill=plotColours[aaa], shape=markerShapes[mmm]) + 
+          # geom_line() +
+          # geom_smooth(method=lm, formula='y~x', se=FALSE) + # geom_smooth should be done on the original data rather than on these data with errorbar
+          scale_y_continuous(name=expression(paste("median speed (", mu, "m/s)")), limits=c(0,1000), sec.axis = sec_axis(trans=~.*1, name=paste("T:", allTAdaptation[aaa], "°C [", allMediumConcentrations[mmm], "%]", sep="") )) +
+          scale_x_continuous(name="Incubation duration (days)", limits=c(-2,10), breaks=seq(0,10,by=5)) +
+          theme_classic(base_size = 15) +
+          # coord_cartesian(ylim=c(200,800)) +
+          theme(axis.ticks.y.right = element_blank(), axis.text.y.right = element_blank(), axis.line.y.right=element_blank()) +
+          # theme(legend.position = "none") + 
+          # ggtitle(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll])) +
+          # scale_colour_manual(values=c("#3B9AB2", "#5DAABC", "#88BAAE", "#CAC656", "#E8C31E", "#E2B306", "#E86F00", "#F21A00")) +
+          scale_color_manual(values=plotColours) + # this is the zissou1 palette
+          scale_shape_manual(values=markerShapes) + # shapes for the markers
+          facet_grid(cols=vars(tTest_as_factor),drop=FALSE) +
+          labs(color="T test:")
+      } else {
+        plotOverTime <- ggplot(currentConditionTopSpeedSummary, aes(x=incubationDurationInDays, y=medianSpeed)) + # , color=tTest_as_factor)) +
+          # geom_hline(yintercept=currentConditionTopSpeedSummary$medianSpeed[currentConditionTopSpeedSummary$tTest_as_factor == allTAdaptation[aaa] & currentConditionTopSpeedSummary$incubationDurationInDays == 0], colour=plotColours[aaa]) +
+          # geom_hline(data = currentConditionTopSpeedSummaryt0, aes(yintercept = medianSpeed), colour=plotColours[aaa]) +
+          # geom_hline(yintercept=currentConditionTopSpeedSummary$medianSpeed[currentConditionTopSpeedSummary$incubationDurationInDays == 0], colour=plotColours[aaa]) +
+          geom_errorbar(aes(ymin=medianSpeed-sd, ymax=medianSpeed+sd), width=1.3) + 
+          geom_point(size=3, color="black", fill=plotColours[aaa], shape=markerShapes[mmm]) + 
+          # geom_line() +
+          # geom_smooth(method=lm, formula='y~x', se=FALSE) + # geom_smooth should be done on the original data rather than on these data with errorbar
+          scale_y_continuous(name=expression(paste("median speed (", mu, "m/s)")), limits=c(0,1000), sec.axis = sec_axis(trans=~.*1, name=paste("T:", allTAdaptation[aaa], "°C [", allMediumConcentrations[mmm], "%]", sep="") )) +
+          scale_x_continuous(name="Incubation duration (days)", limits=c(-2,10), breaks=seq(0,10,by=5)) +
+          theme_classic(base_size = 15) +
+          # coord_cartesian(ylim=c(200,800)) +
+          theme(axis.ticks.y.right = element_blank(), axis.text.y.right = element_blank(), axis.line.y.right=element_blank()) +
+          # theme(legend.position = "none") + 
+          # ggtitle(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll])) +
+          # scale_colour_manual(values=c("#3B9AB2", "#5DAABC", "#88BAAE", "#CAC656", "#E8C31E", "#E2B306", "#E86F00", "#F21A00")) +
+          scale_color_manual(values=plotColours) + # this is the zissou1 palette
+          scale_shape_manual(values=markerShapes) + # shapes for the markers
+          facet_grid(cols=vars(tTest_as_factor),drop=FALSE) +
+          labs(color="T test:")
+      }
+      plotOverTime
+      plotListOverTime[[plotCounterOverTime]] <- plotOverTime
+      plotCounterOverTime <- plotCounterOverTime + 1
+      
+      if (saveFigures){
+        library(Cairo)
+        ggsave(file=paste(currentTitle, "_speed_vs_time.png", sep=""), dpi = 600, width = 20, height = 8, units = "cm")
+        ggsave(file=paste(currentTitle, "_speed_vs_time.eps", sep=""), device="eps", dpi = 600, width = 20, height = 8, units = "cm")
+        ggsave(file=paste(currentTitle, "_speed_vs_time.pdf", sep=""), device=cairo_pdf, dpi = 600, width = 20, height = 8, units = "cm")
+      }
+      
+      
+      
+      
       # a plot to check how speed changes with cell size
       ggplot(currentConditionTopSpeed, aes(x=estimatedlogVolume, y=logSpeed, color=tTest)) +
         geom_point() + 
@@ -246,8 +441,6 @@ for (aaa in 1:length(allTAdaptation))
       {
         # exclude high temperature conditions as cells change shape and various things
         # happen:
-        # print("Note that the analysis of speed vs. volume with this dataset should take into account that cells change their volume during the long-term exposure")
-        # print("and they may also deplete some of their nutrients, so perhaps the analysis should be done on populations measured on a single day")
         if (ttt > 30) next
         # print(ttt)
         tryCatch({
@@ -454,13 +647,7 @@ for (aaa in 1:length(allTAdaptation))
       
       
       
-      ###### Fit schoolfield to drag power        
-      
-      # load in data
-      #data("chlorella_tpc")
-      
-      # keep just a single curve
-      # d <- filter(chlorella_tpc, curve_id == 1)
+      ###### Fit schoolfield to drag power
       
       
       
@@ -1249,7 +1436,7 @@ if (includeBootstrap)
     theme_classic(base_size=18) +
     theme(legend.position = "none") +
     labs(color = "Conc.") #+ # this specifies a custom legend
-    # ggtitle(paste("Speed at reference temperature (", referenceTemperature, "°C)", sep=""))
+  # ggtitle(paste("Speed at reference temperature (", referenceTemperature, "°C)", sep=""))
   
   if (saveFigures)
   {
@@ -1323,6 +1510,8 @@ mean(aOLS)
 sd(aOLS)/sqrt(length(aOLS))
 
 print(paste("speed ~ volume^alpha, with alpha=", mean(aOLS), "+-", sd(aOLS)/sqrt(length(aOLS)), sep=""))
+print("Note that the analysis of speed vs. volume with this dataset should take into account that cells change their volume during the long-term exposure")
+print("and they may also deplete some of their nutrients; maybe it should be further separated into individual analyses for each day of testing")
 
 quantile(aOLS,c(0.025, 0.975))
 aMA<- a[seq(2,length(a), by=4)]# this is the MA
@@ -1332,6 +1521,5 @@ median(aSMA)
 aRMA<- a[seq(4,length(a), by=4)]# this is the RMA
 median(aRMA)
 write.csv(aOLS,file="temp_aOLS.csv", row.names=F)
-
 
 
