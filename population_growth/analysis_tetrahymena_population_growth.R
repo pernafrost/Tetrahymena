@@ -516,6 +516,7 @@ for (aaa in 1:length(allTAdaptation))
     
     
     # Repeat the fit on the combined lines:
+    currentTitle <- paste("aaaa_short_term_population_growth_line_all_conc_", allMediumConcentrations[mmm], "_tadapt_", allTAdaptation[aaa], sep="")
     
     currentConditionBySubculture <- subset(populationGrowthRatesBySubculture, tAdaptation == allTAdaptation[aaa] & mediumConcentration == allMediumConcentrations[mmm])
     currentConditionBySubculture$tTest_as_factor <- factor(currentConditionBySubculture$tTest, levels=as.character(seq(12.5, 30, by=2.5)))
