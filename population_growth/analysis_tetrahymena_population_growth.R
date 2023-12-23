@@ -1,4 +1,5 @@
 rm(list=ls()) # clean memory
+if(!is.null(dev.list())) dev.off() # sometimes R studio stops showing plots (possibly because you call other devices for pdf)
 
 
 library(rTPC)
@@ -34,20 +35,19 @@ data_summary <- function(data, varname, groupnames){
 }
 
 
-
-
 conversionPixelPerMicrometre <- sqrt(779441.5)/2/1000
 saveFigures <- TRUE
 skipMotherCulture <- TRUE # whether to skip the mother culture from this analysis
 includeBootstrap <- TRUE # whether to run a bootstrap on the fitted thermal response curve
-if(!is.null(dev.list())) dev.off() # sometimes R studio stops showing plots (possibly because you call other devices for pdf)
 
 conversionMillilitresPerPixel <-  4 * 10^-4 / 779441.5
 # the volume in which the cells are counted depends on the area selected under the microscope in pixels (d1$AreaPixels). Each square is 0.1 microliters, or 10^-4 milliliters and 4 squares are together 779441 pixels square: (X px) * (4 sq) * (10^-4 ml / sq) / (779441 px) = (Y ml)
 
+
 fileName <- "/Tetrahymena/population_growth/Tetrahymena_pop_growth.csv"
 setwd(dirname(fileName))
 allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
+
 
 
 # some cleaning out of comments
@@ -106,8 +106,6 @@ fileNameStartingDensities <- "~/Tetrahymena/population_growth/Starting_Densities
 startingDensities <- read.table(file = fileNameStartingDensities, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
 fileNameStartingDensities30deg <- "~/Tetrahymena/population_growth/Starting_Densities_for_Growth_Experiment_30deg.csv"
 startingDensities30deg <- read.table(file = fileNameStartingDensities30deg, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
-
-
 
 # Now for each tested condition (e.g. a_15_50_c_growth25) I look at the initial density (which is the same
 # across all those adapted in the same conditions)
@@ -177,13 +175,20 @@ for (iii in 1:dim(initialDensities)[1])
 
 allExperimentResults <- rbind(allExperimentResults, initialDensities)
 
+# I also group together times that are on the same day
+allExperimentResults$incubationDurationInDays <- round((allExperimentResults$incubationDuration)/24)
+
 # Now save the population growth table with all the processed additional information, standardized format etc.
 write.table(allExperimentResults, file="Tetrahymena_pop_growth_complete.csv", append = FALSE, sep = ", ", row.names = FALSE)
 
 allTAdaptation <- sort(unique(allExperimentResults$tAdaptation))
 
 # Initialise a data frame for the results
-populationGrowthRates <- data.frame(line=character(), tAdaptation=double(), mediumConcentration=double(), tTest = double(), growthRate = double(), standardErrorOnSlope = double(), fitIntercept = double())
+populationGrowthRates <- data.frame(line=character(), tAdaptation=double(), mediumConcentration=double(), tTest = double(), growthRate = double(), standardErrorOnSlope = double(), fitIntercept = double(), maxDensity=double())
+
+populationGrowthRatesBySubculture <- data.frame(line = character(), tAdaptation = double(), mediumConcentration = double(), tTest = double(), 
+                                                incubationDurationInDays = integer(), subcultureStartingTime = double(), subcultureEndingTime = double(), growthRate = double(), 
+                                                standardErrorOnSlope = double(), fitIntercept = double(), row.names=NULL)
 
 iteration = 0
 iterationCombinedLines = 0
@@ -265,9 +270,51 @@ for (aaa in 1:length(allTAdaptation))
       }
       
       
-      
-      
-      
+      # Also calculate the slope for each measurement in time
+      # i.e. between day 2 and day 3, or similar
+      allTTest <- sort(unique(tempDataset$tTest))
+      for (ttt in 1:length(allTTest))
+      {
+        allMeasuredIncubationDurations <- sort(unique(tempDataset$incubationDurationInDays[tempDataset$tTest == allTTest[ttt]]))
+        for (uuu in 1:length(allMeasuredIncubationDurations))
+        {
+          miniDataset <- subset(tempDataset, tTest == allTTest[ttt] & (incubationDurationInDays == allMeasuredIncubationDurations[uuu] | incubationDurationInDays == allMeasuredIncubationDurations[max(1, uuu-1)]))
+          miniFit <- lm(formula = log2Density ~ incubationDuration, data=miniDataset)
+          miniFitIntercept <- miniFit$coefficients[1]
+          miniFitSlope <- miniFit$coefficients[2]
+          if (is.finite(miniFitSlope)){
+          miniFitSlopeSe <- summary(miniFit)$coefficients[2,2]
+          } else {
+            miniFitSlopeSe <- NA
+          }
+          if (uuu > 1){
+            subcultureStartingTime <- mean(miniDataset$incubationDuration[miniDataset$incubationDurationInDays == allMeasuredIncubationDurations[uuu -1]])
+            subcultureStartingTimeSD <- sd(miniDataset$incubationDuration[miniDataset$incubationDurationInDays == allMeasuredIncubationDurations[uuu -1]])
+          } else {
+            subcultureStartingTime <- NA
+            subcultureStartingTimeSD <- NA
+          }
+          subcultureEndingTime <- mean(miniDataset$incubationDuration[miniDataset$incubationDurationInDays == allMeasuredIncubationDurations[uuu]])
+          subcultureEndingTimeSD <- sd(miniDataset$incubationDuration[miniDataset$incubationDurationInDays == allMeasuredIncubationDurations[uuu]])
+          
+          subcultureFinalMaxDensity <- max(2^miniDataset$log2Density[miniDataset$incubationDurationInDays == allMeasuredIncubationDurations[uuu]])
+          
+          print(paste("Population growth line:", allLines[lll], ", conc:", allMediumConcentrations[mmm], "%, T adapt.:", allTAdaptation[aaa], "C", sep=""))
+          print(paste("T test:", allTTest[ttt], "incubation:", subcultureStartingTime, "-", subcultureEndingTime, "slope:", miniFitSlope, "intercept", miniFitIntercept))
+          populationGrowthRatesBySubculture <- rbind(populationGrowthRatesBySubculture, data.frame(line = allLines[lll], 
+                                                                                                   tAdaptation = allTAdaptation[aaa], 
+                                                                                                   mediumConcentration = allMediumConcentrations[mmm], 
+                                                                                                   tTest = allTTest[ttt], 
+                                                                                                   incubationDurationInDays = allMeasuredIncubationDurations[uuu], 
+                                                                                                   subcultureStartingTime = subcultureStartingTime, 
+                                                                                                   subcultureEndingTime = subcultureEndingTime,
+                                                                                                   growthRate = miniFitSlope, 
+                                                                                                   standardErrorOnSlope = miniFitSlopeSe, 
+                                                                                                   fitIntercept = miniFitIntercept,
+                                                                                                   maxDensity = subcultureFinalMaxDensity))
+        }
+      }
+ 
       
       # FITTING SHARPE-SCHOOLFIELD
       
@@ -469,6 +516,62 @@ for (aaa in 1:length(allTAdaptation))
     
     
     # Repeat the fit on the combined lines:
+    
+    currentConditionBySubculture <- subset(populationGrowthRatesBySubculture, tAdaptation == allTAdaptation[aaa] & mediumConcentration == allMediumConcentrations[mmm])
+    currentConditionBySubculture$tTest_as_factor <- factor(currentConditionBySubculture$tTest, levels=as.character(seq(12.5, 30, by=2.5)))
+    
+    currentConditionBySubcultureSummary <- data_summary(currentConditionBySubculture, varname="growthRate",
+                                                    groupnames=c("incubationDurationInDays", "tTest_as_factor", "tAdaptation", "mediumConcentration"))
+    
+    
+    # Plot the growth rate over time after the transfer to the 
+    # new temperature condition
+    plotColours <- rep(c("#3B9AB2", "#EBCC2A", "#F21A00"),5)
+    markerShapes = c(21, 24, 22, 4)
+    
+    # # plot on the original data, without summary
+    # plotOverTime <- ggplot(currentConditionBySubculture, aes(x=incubationDurationInDays, y=growthRate*24)) + # , color=tTest_as_factor)) +
+    #   geom_point(size=3, color="black", fill=plotColours[aaa], shape=markerShapes[mmm]) + 
+    #   # scale_y_continuous(name=expression(paste("median speed (", mu, "m/s)")), limits=c(0,1000), sec.axis = sec_axis(trans=~.*1, name=paste("T:", allTAdaptation[aaa], "°C [", allMediumConcentrations[mmm], "%]", sep="") )) +
+    #   scale_y_continuous(name="Growth (gen/day)", breaks=seq(0,5,by=1), sec.axis = sec_axis(trans=~.*1, name=paste("T:", allTAdaptation[aaa], "°C [", allMediumConcentrations[mmm], "%]", sep="") )) +
+    #   scale_x_continuous(name="Incubation duration (days)", limits=c(-2,10), breaks=seq(0,10,by=5)) +
+    #   theme_classic(base_size = 15) +
+    #   coord_cartesian(ylim=c(0,5)) +
+    #   theme(axis.ticks.y.right = element_blank(), axis.text.y.right = element_blank(), axis.line.y.right=element_blank()) +
+    #   # theme(legend.position = "none") + 
+    #   # ggtitle(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll])) +
+    #   # scale_colour_manual(values=c("#3B9AB2", "#5DAABC", "#88BAAE", "#CAC656", "#E8C31E", "#E2B306", "#E86F00", "#F21A00")) +
+    #   scale_color_manual(values=plotColours) + # this is the zissou1 palette
+    #   scale_shape_manual(values=markerShapes) + # shapes for the markers
+    #   facet_grid(cols=vars(tTest_as_factor),drop=FALSE) +
+    #   labs(color="T test:")
+    # plotOverTime
+    
+    
+    plotOverTime <- ggplot(currentConditionBySubcultureSummary, aes(x=incubationDurationInDays, y=growthRate*24)) + # , color=tTest_as_factor)) +
+      geom_errorbar(aes(ymin=(growthRate-sd)*24, ymax=(growthRate+sd)*24), width=1.3) + 
+      geom_point(size=3, color="black", fill=plotColours[aaa], shape=markerShapes[mmm]) + 
+      # scale_y_continuous(name=expression(paste("median speed (", mu, "m/s)")), limits=c(0,1000), sec.axis = sec_axis(trans=~.*1, name=paste("T:", allTAdaptation[aaa], "°C [", allMediumConcentrations[mmm], "%]", sep="") )) +
+      scale_y_continuous(name="Growth (gen/day)", breaks=seq(0,5,by=1), sec.axis = sec_axis(trans=~.*1, name=paste("T:", allTAdaptation[aaa], "°C [", allMediumConcentrations[mmm], "%]", sep="") )) +
+      scale_x_continuous(name="Incubation duration (days)", limits=c(-2,10), breaks=seq(0,10,by=5)) +
+      theme_classic(base_size = 15) +
+      coord_cartesian(ylim=c(0,5)) +
+      theme(axis.ticks.y.right = element_blank(), axis.text.y.right = element_blank(), axis.line.y.right=element_blank()) +
+      # theme(legend.position = "none") + 
+      # ggtitle(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll])) +
+      # scale_colour_manual(values=c("#3B9AB2", "#5DAABC", "#88BAAE", "#CAC656", "#E8C31E", "#E2B306", "#E86F00", "#F21A00")) +
+      scale_color_manual(values=plotColours) + # this is the zissou1 palette
+      scale_shape_manual(values=markerShapes) + # shapes for the markers
+      facet_grid(cols=vars(tTest_as_factor),drop=FALSE) +
+      labs(color="T test:")
+    plotOverTime
+    
+    if (saveFigures){
+      library(Cairo)
+      ggsave(file=paste(currentTitle, "_pop_growth_vs_time.png", sep=""), dpi = 600, width = 20, height = 8, units = "cm")
+      ggsave(file=paste(currentTitle, "_pop_growth_vs_time.eps", sep=""), device="eps", dpi = 600, width = 20, height = 8, units = "cm")
+      ggsave(file=paste(currentTitle, "_pop_growth_vs_time.pdf", sep=""), device=cairo_pdf, dpi = 600, width = 20, height = 8, units = "cm")
+    }
     
     
     
