@@ -64,7 +64,6 @@ calculate_cell_cross_section <- function(rs) {
 
 
 
-
 #################################################################################################################
 # FUNCTION calculate_water_viscosity
 # This function calculates the viscosity of water at a given temperature
@@ -694,6 +693,14 @@ calculate_optimal_speed <- function(s, eta, fMax)
   eta <- eta*10^-6 # convert eta to m/s from um/s
   f <- fMax * 10^-9 # convert the feeding rate from uW to W
   Uopt <- ((eta*sqrt(f*(8*eta^2*s+27*f)))/(4*3^(3/2)*s)+((3*f*eta)/(2*s)+2*eta^3)/6-(8*eta^3)/27)^(1/3)+eta^2/(9*((eta*sqrt(f*(8*eta^2*s+27*f)))/(4*3^(3/2)*s)+((3*f*eta)/(2*s)+2*eta^3)/6-(8*eta^3)/27)^(1/3))-(2*eta)/3
+  
+  # if at high Reynolds numbers, the equation is different:
+  # Uopt <- sqrt(+(4*sqrt((eta*f)/s))/sqrt(3)+eta^2)/2 - eta/2
+  # however, I think we must also be careful when calculating the
+  # coefficient s, as it would need to be different (the units are
+  # proably different because we now multiply by speed one more time)
+  # To be checked
+  
   Uopt <- Uopt * 10^6 # converts back speed to um/s
   # all these conversions are because the Stokes coefficient is
   # in international units
@@ -753,7 +760,7 @@ library(tidyverse)
 setwd("~/Tetrahymena/theoretical_model")
 
 
-dev.off()
+if(!is.null(dev.list())) dev.off()
 
 
 ######################### Predicted speed for short-term exposure #########
@@ -799,17 +806,32 @@ eta_c <- CD * mu / CDmuoveretac
 testedTemperature <- seq(10, 40, by=1)# c(10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30, 32.5, 35, 37.5, 40)
 foodDensity <- 1
 
-B <- scale_metabolic_rate_with_temperature(Bmeasured, adaptedTemperature + 273.15, tempH=31+273.15, temp=testedTemperature + 273.15, 0.75, 7)
+B <- scale_metabolic_rate_with_temperature(Bmeasured, adaptedTemperature + 273.15, tempH=31+273.15, temp=testedTemperature + 273.15, Ea, 7)
 allMu <- calculate_water_viscosity(testedTemperature + 273.15)
 predictedSpeed <- sqrt(B * 1e-9 / CDmuoveretac * mu / allMu) * 1e6
 
-df1 <- data.frame(temp = testedTemperature, rate = predictedSpeed)
+df1 <- data.frame(temp = testedTemperature, B = B, rate = predictedSpeed)
 
 labels = c("Speed")
 colours = c("#000000")
 
+g0 <- ggplot() +
+  geom_line(data = df1, size=2, linetype = 1, aes(x=temp, y = B, color=labels[1])) +
+  annotate("text", size=5, x=10.5, y=3.15, label= paste("E=", Ea, "eV", sep=""), hjust = 0, parse=F) +
+  scale_x_continuous(name=expression(paste("Temperature °C "))) +
+  scale_y_continuous(name="metabolic rate (nW)", limits=c(0,3.6)) +
+  theme_classic(base_size = 18) + 
+  scale_color_manual(name="Contribution", breaks=labels, values=colours) +
+  theme(legend.position = "none") # + # This removes the legend above
+# ggtitle(paste("Predicted speed, short term exposure"))
+g0
+
+ggsave(file="aaaa_estimated_short_term_MR_from_model.pdf", device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
+ggsave(file="aaaa_estimated_short_term_MR_from_model.png", dpi = 600, width = 12, height = 10, units = "cm")
+
+
 g1 <- ggplot() + 
-  geom_line(data = df1, linetype = 1, aes(x=temp, y = rate, color=labels[1])) +
+  geom_line(data = df1, size=1, linetype = 1, aes(x=temp, y = rate, color=labels[1])) +
   scale_x_continuous(name=expression(paste("Temperature °C "))) +
   scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")"))) +
   theme_classic(base_size = 18) + 
@@ -817,7 +839,7 @@ g1 <- ggplot() +
   theme(legend.position = "none") # + # This removes the legend above
 # ggtitle(paste("Predicted speed, short term exposure"))
 
-g1
+
 
 # choose model
 mod = 'sharpschoolhigh_1981'
@@ -858,9 +880,11 @@ new_data <- data.frame(temp = testedTemperature)
 preds <- augment(fit, newdata = new_data)
 
 g1 <- g1 + 
-  geom_line(aes(temp, .fitted), preds, col = 'blue', size=2)
-
+  geom_line(aes(temp, .fitted), preds, col = 'black', size=2) +
+  annotate("text", size=5, x=10.5, y=1020, label= paste("E=", calculatedFitParameters$e, "eV", sep=""), hjust = 0, parse=F)
 g1
+ggsave(file="aaaa_estimated_short_term_speed_from_model.pdf", device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
+ggsave(file="aaaa_estimated_short_term_speed_from_model.png", dpi = 600, width = 12, height = 10, units = "cm")
 
 
 
@@ -881,7 +905,7 @@ dExtra$rate <- 0
 df2 <- rbind(df2, dExtra)
 
 g2 <- ggplot() + 
-  geom_line(data = df2, linetype = 1, aes(x=temp, y = rate, color=labels[1])) +
+  geom_line(data = df2, linetype = 1, size= 1, aes(x=temp, y = rate, color=labels[1])) +
   scale_x_continuous(name=expression(paste("Temperature °C "))) +
   scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")")), lim=c(0,800)) +
   theme_classic(base_size = 18) + 
@@ -1112,6 +1136,8 @@ g4 <- ggplot() +
 # ggtitle(paste("Predicted speed, long term exposure"))
 
 g4
+ggsave(file="aaaa_predicted_long_term_speed_vs_concentration.pdf", device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
+ggsave(file="aaaa_predicted_long_term_speed_vs_concentration.png", dpi = 600, width = 12, height = 10, units = "cm")
 
 
 library(ggpubr)
