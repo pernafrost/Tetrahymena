@@ -817,10 +817,12 @@ colours = c("#000000")
 
 g0 <- ggplot() +
   geom_line(data = df1, size=2, linetype = 1, aes(x=temp, y = B, color=labels[1])) +
-  annotate("text", size=5, x=10.5, y=3.15, label= paste("E=", Ea, "eV", sep=""), hjust = 0, parse=F) +
+  annotate("text", size=5, x=10.5, y=1.75, label= paste("E=", Ea, "eV", sep=""), hjust = 0, parse=F) +
+  # annotate("text", size=5, x=10.5, y=3.15, label= paste("E=", Ea, "eV", sep=""), hjust = 0, parse=F) +
   scale_x_continuous(name=expression(paste("Temperature °C "))) +
-  scale_y_continuous(name="metabolic rate (nW)", limits=c(0,3.6)) +
-  theme_classic(base_size = 18) + 
+  scale_y_continuous(name="metabolic rate (nW)", limits=c(0,2)) +
+  # scale_y_continuous(name="metabolic rate (nW)", limits=c(0,3.6)) +
+  theme_classic(base_size = 22) + 
   scale_color_manual(name="Contribution", breaks=labels, values=colours) +
   theme(legend.position = "none") # + # This removes the legend above
 # ggtitle(paste("Predicted speed, short term exposure"))
@@ -833,8 +835,8 @@ ggsave(file="aaaa_estimated_short_term_MR_from_model.png", dpi = 600, width = 12
 g1 <- ggplot() + 
   geom_line(data = df1, size=1, linetype = 1, aes(x=temp, y = rate, color=labels[1])) +
   scale_x_continuous(name=expression(paste("Temperature °C "))) +
-  scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")"))) +
-  theme_classic(base_size = 18) + 
+  scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")")),limits=c(0,1100), breaks=seq(0, 1000, by=200)) +
+  theme_classic(base_size = 22) + 
   scale_color_manual(name="Contribution", breaks=labels, values=colours) +
   theme(legend.position = "none") # + # This removes the legend above
 # ggtitle(paste("Predicted speed, short term exposure"))
@@ -881,7 +883,7 @@ preds <- augment(fit, newdata = new_data)
 
 g1 <- g1 + 
   geom_line(aes(temp, .fitted), preds, col = 'black', size=2) +
-  annotate("text", size=5, x=10.5, y=1020, label= paste("E=", calculatedFitParameters$e, "eV", sep=""), hjust = 0, parse=F)
+  annotate("text", size=5, x=10.5, y=960, label= paste("E=", calculatedFitParameters$e, "eV", sep=""), hjust = 0, parse=F)
 g1
 ggsave(file="aaaa_estimated_short_term_speed_from_model.pdf", device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
 ggsave(file="aaaa_estimated_short_term_speed_from_model.png", dpi = 600, width = 12, height = 10, units = "cm")
