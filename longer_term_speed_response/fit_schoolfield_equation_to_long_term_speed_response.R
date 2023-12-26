@@ -737,9 +737,10 @@ for (aaa in 1:length(allTAdaptation))
       
       if (is.null(fit))
       {
-        calculatedFitParameters <- cbind(calculatedFitParameters, data.frame(r_tref=NA, e_from_fit=NA, eh_from_fit=NA, th=NA))
+        calculatedFitParameters <- cbind(calculatedFitParameters, data.frame(r_tref=NA, e_from_fit=NA, eh_from_fit=NA, th=NA, r_tadapt=NA))
       } else{
-        calculatedFitParameters <- cbind(calculatedFitParameters, data.frame(r_tref=coef(fit)[1], e_from_fit=coef(fit)[2], eh_from_fit=coef(fit)[3], th=coef(fit)[4]))
+        r_tadapt <- (augment(fit, newdata=data.frame(temp=as.numeric(allTAdaptation[aaa]))))$.fitted
+        calculatedFitParameters <- cbind(calculatedFitParameters, data.frame(r_tref=coef(fit)[1], e_from_fit=coef(fit)[2], eh_from_fit=coef(fit)[3], th=coef(fit)[4], r_tadapt=r_tadapt))
       }
       
       print(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll]))
@@ -905,9 +906,10 @@ for (aaa in 1:length(allTAdaptation))
       
       if (is.null(fit))
       {
-        calculatedFitParameters <- cbind(calculatedFitParameters, data.frame(r_tref=NA, e_from_fit=NA, eh_from_fit=NA, th=NA))
+        calculatedFitParameters <- cbind(calculatedFitParameters, data.frame(r_tref=NA, e_from_fit=NA, eh_from_fit=NA, th=NA, r_tadapt=NA))
       } else{
-        calculatedFitParameters <- cbind(calculatedFitParameters, data.frame(r_tref=coef(fit)[1], e_from_fit=coef(fit)[2], eh_from_fit=coef(fit)[3], th=coef(fit)[4]))
+        r_tadapt <- (augment(fit, newdata=data.frame(temp=as.numeric(allTAdaptation[aaa]))))$.fitted
+        calculatedFitParameters <- cbind(calculatedFitParameters, data.frame(r_tref=coef(fit)[1], e_from_fit=coef(fit)[2], eh_from_fit=coef(fit)[3], th=coef(fit)[4], r_tadapt=r_tadapt))
       }
       
       print(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll]))
