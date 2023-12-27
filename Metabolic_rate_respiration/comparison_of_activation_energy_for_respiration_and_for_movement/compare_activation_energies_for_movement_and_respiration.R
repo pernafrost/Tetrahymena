@@ -1,3 +1,9 @@
+# We make the prediction that the activation energy
+# for movement speed (acute response) should be approximately
+# 1/2 the value of activation energy measured for respiration
+# (a little higher if including the effect of water viscosity)
+# this scripts compares these activation energies directly
+# as they are in the empirical data
 rm(list=ls()) # clean memory
 if(!is.null(dev.list())) dev.off()
 saveFigures <- TRUE
