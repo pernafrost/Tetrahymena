@@ -28,13 +28,13 @@ library(dplyr)
 
 
 # the file with the activation energies for 1/(cell volume)
-# fileNameCellVolume <- "/Users/perna/Dropbox/tetrahymena_results/comparison_of_activation_energy_for_cell_size_and_population_growth/allFitResults_Schoolfield_on_one_over_Volume_long_term_response_all.csv" # file.choose() # ask the user to select a file name.
-fileNameCellVolume <- "/Users/perna/Dropbox/tetrahymena_results/comparison_of_activation_energy_for_cell_size_and_population_growth/allFitResults_Schoolfield_on_one_over_Volume_long_term_response.csv" # file.choose() # ask the user to select a file name.
+# fileNameCellVolume <- "~/Tetrahymena/comparison_of_activation_energy_for_cell_size_and_population_growth/allFitResults_Schoolfield_on_one_over_Volume_long_term_response_all.csv" # file.choose() # ask the user to select a file name.
+fileNameCellVolume <- "~/Tetrahymena/comparison_of_activation_energy_for_cell_size_and_population_growth/allFitResults_Schoolfield_on_one_over_Volume_long_term_response.csv" # file.choose() # ask the user to select a file name.
 
 
 # the file with the activation energies for population growth
-# fileNamePopulationGrowth <- "/Users/perna/Dropbox/tetrahymena_results/comparison_of_activation_energy_for_cell_size_and_population_growth/allFitResults_Schoolfield_on_short_term_population_growth_all.csv" # file.choose() # ask the user to select a file name.
-fileNamePopulationGrowth <- "/Users/perna/Dropbox/tetrahymena_results/comparison_of_activation_energy_for_cell_size_and_population_growth/allFitResults_Schoolfield_on_short_term_population_growth.csv" # file.choose() # ask the user to select a file name.
+# fileNamePopulationGrowth <- "~/Tetrahymena/comparison_of_activation_energy_for_cell_size_and_population_growth/allFitResults_Schoolfield_on_short_term_population_growth_all.csv" # file.choose() # ask the user to select a file name.
+fileNamePopulationGrowth <- "~/Tetrahymena/comparison_of_activation_energy_for_cell_size_and_population_growth/allFitResults_Schoolfield_on_short_term_population_growth.csv" # file.choose() # ask the user to select a file name.
 setwd(dirname(fileNamePopulationGrowth))
 
 dVolume <- read.table(file = fileNameCellVolume, sep = ",", header=TRUE, stringsAsFactors = FALSE, strip.white=TRUE, na.strings = c("NA", " NA"))
