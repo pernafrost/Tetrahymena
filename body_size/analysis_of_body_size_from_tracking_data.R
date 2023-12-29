@@ -20,11 +20,13 @@ data_summary <- function(data, varname, groupnames){
   summary_func <- function(x, col){
     c(mean = mean(x[[col]], na.rm=TRUE),
       sd = sd(x[[col]], na.rm=TRUE),
-      se = std.error(x[[col]], na.rm=TRUE))
+      se = std.error(x[[col]], na.rm=TRUE),
+      CI0025 = quantile(x[[col]], probs = 0.025, na.rm = TRUE, names=FALSE),
+      CI0975 = quantile(x[[col]], probs = 0.975, na.rm = TRUE, names=FALSE))
   }
   data_sum<-ddply(data, groupnames, .fun=summary_func,
                   varname)
-  data_sum <- plyr::rename(data_sum, c("mean" = varname))
+  data_sum <- plyr::rename(data_sum, c("mean" = varname, "sd"=paste("sd_", varname, sep=""), "se"=paste("se_", varname, sep=""), "CI0025"=paste(varname, "_0025", sep=""), "CI0975"=paste(varname, "_0975", sep="")))
   return(data_sum)
 }
 
@@ -284,7 +286,7 @@ plotG2bis <- ggplot(d2, aes(x=factor(mediumConcentration, levels=sort(unique(as.
   # stat_summary(fun.data=mean_sdl, mult=1, geom="pointrange", color="red") +
   # scale_fill_grey() + 
   # geom_boxplot(width=0.6, outlier.shape = NA, colour="black", aes(fill = factor(tAdapt))) + # add a box plot
-  geom_errorbar(aes(ymin=estimatedlogVolume-sd, ymax=estimatedlogVolume+sd), width=0.1, position=position_dodge(width=0.2)) + 
+  geom_errorbar(aes(ymin=estimatedlogVolume-sd_estimatedlogVolume, ymax=estimatedlogVolume+sd_estimatedlogVolume), width=0.1, position=position_dodge(width=0.2)) + 
   geom_point(size=6, shape=21, position=position_dodge(width=0.2), aes(col=factor(tAdaptation), fill=factor(tAdaptation))) + 
   theme_classic(base_size = 22) +
   theme(legend.position = "none") + 
@@ -300,6 +302,17 @@ if (saveFigures){
   ggsave(file=paste(currentTitle, "_logvolume_errorbar.pdf", sep=""), device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
   ggsave(file=paste(currentTitle, "_logvolume_errorbar.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
 }
+
+write.table(d2subculture, "estimated_log_volume_adapted_lines_all.csv", append = FALSE, sep = ",", row.names = FALSE)
+
+# repeat but now for each line independently
+# Summarize the data in order to plot the data with error bar
+d2byLine <- data_summary(d1, varname="estimatedlogVolume", 
+                   groupnames=c("tAdaptation", "mediumConcentration", "isMotherCulture", "line"))
+
+d2subculturebyLine <- subset(d2byLine, isMotherCulture == FALSE)
+write.table(d2subculturebyLine, "estimated_log_volume_adapted_lines.csv", append = FALSE, sep = ",", row.names = FALSE)
+
 
 
 # Let's have a look at the changes of size relative to the mother culture
@@ -341,7 +354,8 @@ for (aaa in 1:length(allTAdaptation))
                                 fitSlope=fittedSizeChange$coefficients[2], 
                                 fitInterceptSe=coefficients(summary(fittedSizeChange))[1,2],
                                 fitSlopeSe=coefficients(summary(fittedSizeChange))[2,2],
-                                row.names=NULL)    
+                                row.names=NULL)
+    
     if (iteration == 0)
     {
       bodySizeFitResults <- deltaBodySize
