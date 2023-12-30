@@ -81,6 +81,30 @@ if (saveFigures){
   
   dSpeedAndResp <- merge(dSpeed, dResp, by = c("tAdaptation", "mediumConcentration"))
   
+  tentativeSlopeSpeedvsRespiration <- mean(dSpeedAndResp$e_from_fit.y/dSpeedAndResp$e_from_fit.x)
+  
+  
+  ggplot(dSpeedAndResp, aes(x=e_from_fit.x, y=e_from_fit.y, fill=as.factor(tAdaptation), colour=as.factor(tAdaptation), shape=as.factor(mediumConcentration))) +
+    geom_errorbarh(aes(xmin=e_from_fit.x - sd_e_from_fit.x, xmax = e_from_fit.x + sd_e_from_fit.x)) +
+    geom_errorbar(aes(ymin=e_from_fit.y - sd_e_from_fit.y, ymax = e_from_fit.y + sd_e_from_fit.y)) +
+    geom_point(size=3, colour="black") +
+    geom_abline(intercept = 0, slope = tentativeSlopeSpeedvsRespiration, color="black") +
+    annotate("text", size=5, x=0.5, y=0.8, label= paste("slope: ", round(tentativeSlopeSpeedvsRespiration, 2), sep=""), hjust = 0, parse=F) +
+    # geom_jitter(position = position_jitter(height = 0, width = .5)) +
+    # geom_smooth(method="lm", se=TRUE, fill="red", formula=y ~ x, na.rm=TRUE) +
+    scale_y_continuous(name="Activation Energy (speed)") +
+    scale_x_continuous(name="Activation Energy (respiration)") +
+    coord_cartesian(xlim=c(0,1), ylim=c(0,1), expand=FALSE) +
+    theme_classic(base_size = 15) +
+    theme(legend.position = "none") +
+    scale_colour_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) +
+    scale_fill_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) +
+    scale_size_manual( values = c(0.4, 0.6, 0.8) ) +
+    # ggtitle("Comparison of activation energies") +
+    scale_shape_manual(values=c(21, 24, 22))  # shapes for the markers
+  
+  
+  
   ggplot(dSpeedAndResp, aes(x=e_from_fit.x, y=e_from_fit.y)) +
     geom_point() +
     geom_errorbarh(aes(xmin=e_from_fit.x - sd_e_from_fit.x, xmax = e_from_fit.x + sd_e_from_fit.x)) +
