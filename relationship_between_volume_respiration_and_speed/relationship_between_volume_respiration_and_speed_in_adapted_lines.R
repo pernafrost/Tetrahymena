@@ -49,15 +49,15 @@ library(ggpubr) # for combining figures
 # analysis_of_body_size_from_tracking_data.R
 
 # the file with the activation energies and rates at reference temperature for movement speed
-fileNameSpeed <- "/Users/perna/Dropbox/tetrahymena_results/tracking_results/speed_response_2021/allFitResults_Schoolfield_on_Speed_acute_response_all.csv" # file.choose() # ask the user to select a file name. # file.choose() # ask the user to select a file name.
+fileNameSpeed <- "~/Tetrahymena/acute_speed_response_2021/allFitResults_Schoolfield_on_Speed_acute_response_all.csv" # file.choose() # ask the user to select a file name. # file.choose() # ask the user to select a file name.
 
 # the file with the activation energies and rates at reference temperature for metabolic rate measured from respiration
-fileNameRespiration <- "/Users/perna/Dropbox/tetrahymena_results/provided_code_and_examples/Metabolic_rate_respiration/post-data/allFitResults_metabolic_rate_post-adaptation_all.csv" # file.choose() # ask the user to select a file name.
+fileNameRespiration <- "~/Tetrahymena/Metabolic_rate_respiration/post-data/allFitResults_metabolic_rate_post-adaptation_all.csv" # file.choose() # ask the user to select a file name.
 
 # the file with measurements of the log10(cell volume) in the 9 adaptation conditions
-fileNameCellVolume <- "/Users/perna/Dropbox/tetrahymena_results/body_size/estimated_log_volume_adapted_lines_all.csv" 
+fileNameCellVolume <- "~/Tetrahymena/body_size/estimated_log_volume_adapted_lines_all.csv" 
 
-setwd("/Users/perna/Dropbox/tetrahymena_results/relationship_between_volume_respiration_and_speed/")
+setwd("~/Tetrahymena/relationship_between_volume_respiration_and_speed/")
 
 dSpeed <- read.table(file = fileNameSpeed, sep = ",", header=TRUE, stringsAsFactors = FALSE, strip.white=TRUE, na.strings = c("NA", " NA"))
 dResp <- read.table(file = fileNameRespiration, sep = ",", header=TRUE, stringsAsFactors=FALSE, strip.white=TRUE, na.strings = c("NA", " NA"))
@@ -205,3 +205,4 @@ if (saveFigures){
   ggsave(file="figure_speed_and_MR_based_on_volume.png", dpi = 600, width = 24, height = 10, units = "cm")
   ggsave(file="figure_speed_and_MR_based_on_volume.pdf", device=cairo_pdf, dpi = 1200, width = 24, height = 10, units = "cm")
 }
+
