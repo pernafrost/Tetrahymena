@@ -265,8 +265,10 @@ for (aaa in 1:length(allTAdaptation))
         ggsave(file=paste(currentTitle, "_speed_vs_temp_jitter.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
       }
       
+      currentConditionTopSpeedForThisPlot <- subset(currentConditionTopSpeed, tTest <= 30)
+      
       # a plot to check how speed changes with cell size
-      ggplot(currentConditionTopSpeed, aes(x=estimatedlogVolume, y=logSpeed, color=tTest)) +
+      ggplot(currentConditionTopSpeedForThisPlot, aes(x=estimatedlogVolume, y=logSpeed, color=tTest)) +
         geom_point() + 
         # geom_jitter(position = position_jitter(height = 0, width = .3)) +
         geom_smooth(method="lm", se=FALSE, formula=y ~ x, colour="red", na.rm=TRUE) + 
