@@ -49,7 +49,7 @@ library(ggpubr) # for combining figures
 # analysis_of_body_size_from_tracking_data.R
 
 # the file with the activation energies and rates at reference temperature for movement speed
-fileNameSpeed <- "~/Tetrahymena/acute_speed_response_2021/allFitResults_Schoolfield_on_Speed_acute_response_all.csv" # file.choose() # ask the user to select a file name. # file.choose() # ask the user to select a file name.
+fileNameSpeed <- "~/Tetrahymena/acute_speed_response/allFitResults_Schoolfield_on_Speed_acute_response_all.csv" # file.choose() # ask the user to select a file name. # file.choose() # ask the user to select a file name.
 
 # the file with the activation energies and rates at reference temperature for metabolic rate measured from respiration
 fileNameRespiration <- "~/Tetrahymena/Metabolic_rate_respiration/post-data/allFitResults_metabolic_rate_post-adaptation_all.csv" # file.choose() # ask the user to select a file name.
