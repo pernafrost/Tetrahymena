@@ -79,7 +79,7 @@ calculate_water_viscosity <- function(temp) {
   viscB <- 4209# parameter B of viscosity calculation in K CONSTANT
   viscC <- 0.04527 # parameter C of viscosity calculation in K^-1 CONSTANT
   viscD <- -3.376e-5 # parameter D of viscosity calculation in K^-2 CONSTANT
-  mu <- viscA * exp(viscB/temp + viscC*temp + viscD*temp^2) # dynamic viscosity of water, approx. 10e-3 Kg/(m s) Andreade equation with extra parameters
+  mu <- viscA * exp(viscB/temp + viscC*temp + viscD*temp^2) # dynamic viscosity of water, approx. 1e-3 Kg/(m s) Andreade equation with extra parameters
   if (verbose)
   {
     print(paste("Viscosity at temperature ", temp - zeroCelsius, "C is ", mu, "Kg/(m s)"))
