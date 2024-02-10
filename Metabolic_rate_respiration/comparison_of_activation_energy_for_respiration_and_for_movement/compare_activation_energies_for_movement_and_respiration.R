@@ -55,9 +55,12 @@ dRespAndSpeed <- merge(dResp, dSpeed, by = c("tAdaptation", "mediumConcentration
 
 ggplot(dRespAndSpeed, aes(x=e_from_fit.x, y=e_from_fit.y, color=tAdaptation)) +
   geom_point() +
+  # geom_errorbarh(aes(xmin=e_from_fit_0025.x, xmax = e_from_fit_0975.x)) +
+  # geom_errorbar(aes(ymin=e_from_fit_0025.y, ymax = e_from_fit_0975.y)) +
   geom_errorbarh(aes(xmin=e_from_fit.x - sd_e_from_fit.x, xmax = e_from_fit.x + sd_e_from_fit.x)) +
   geom_errorbar(aes(ymin=e_from_fit.y - sd_e_from_fit.y, ymax = e_from_fit.y + sd_e_from_fit.y)) +
   geom_abline(intercept = 0, slope = 0.5, color="black") +
+  # geom_abline(intercept = 0.08679, slope = 0.48707, color="black") +
   # geom_jitter(position = position_jitter(height = 0, width = .5)) +
   # geom_smooth(method="lm", se=TRUE, fill="red", formula=y ~ x, na.rm=TRUE) +
   scale_y_continuous(name="Activation Energy (speed)") +
