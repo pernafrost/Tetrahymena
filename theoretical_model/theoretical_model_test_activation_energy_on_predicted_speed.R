@@ -891,6 +891,55 @@ ggsave(file="aaaa_estimated_short_term_speed_from_model.png", dpi = 600, width =
 
 
 
+# Now calculate the relation between activation energies for
+# respiration and for movemetn over a number of values
+allEa <- seq(0.3, 1, by=0.05)
+allEaSpeed <- rep(NA, length(allEa))
+for (eee in 1:length(allEa))
+{
+  EaCurr <- allEa[eee]
+  Bcurr <- scale_metabolic_rate_with_temperature(Bmeasured, adaptedTemperature + 273.15, tempH=31+273.15, temp=testedTemperature + 273.15, EaCurr, 7)
+  allMu <- calculate_water_viscosity(testedTemperature + 273.15)
+  predictedSpeed <- sqrt(Bcurr * 1e-9 / CDmuoveretac * mu / allMu) * 1e6
+  df1curr <- data.frame(temp = testedTemperature, B = Bcurr, rate = predictedSpeed)
+  
+  
+  
+  # fit model
+  fitCurr <- nls_multstart(rate~sharpeschoolhigh_1981(temp = temp, r_tref,e,eh,th, tref = 20),
+                       data = df1curr,
+                       iter = 500,
+                       start_lower = start_vals - 10,
+                       start_upper = start_vals + 10,
+                       lower = low_lims,
+                       upper = upper_lims,
+                       supp_errors = 'Y')
+  
+  
+  
+  # calculate additional traits
+  calculatedFitParametersCurr <- calc_params(fitCurr) %>%
+    # round for easy viewing
+    mutate_all(round, 2)
+  
+  print(c(allEa[eee], calculatedFitParametersCurr$e))
+  allEaSpeed[eee] <- calculatedFitParametersCurr$e
+}
+
+allEaSpeedAndRespiration <- data.frame(EaResp <- allEa, EaSpeed <- allEaSpeed)
+
+gComp <- ggplot(data=allEaSpeedAndRespiration, aes(x=EaResp, y=EaSpeed)) + 
+  geom_point(size= 3) +
+  scale_x_continuous(name=expression(paste("Respiration E (eV)")), limits=c(0,1.2)) +
+  scale_y_continuous(name=expression(paste("Speed E (eV)")), limits=c(0,1.2)) +
+  theme_classic(base_size = 18)  
+  # theme(legend.position = "none") # + # This removes the legend above
+
+gComp
+
+ggsave(file="predicted_AE_speed_respiration.pdf", device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
+ggsave(file="predicted_AE_speed_respiration.png", dpi = 600, width = 12, height = 10, units = "cm")
+
 
 ########### Now use the same strategy to look for optimal speed:
 # feeding rate at test temperature, body size and food density
