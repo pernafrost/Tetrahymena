@@ -940,6 +940,9 @@ gComp
 ggsave(file="predicted_AE_speed_respiration.pdf", device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
 ggsave(file="predicted_AE_speed_respiration.png", dpi = 600, width = 12, height = 10, units = "cm")
 
+# I can fit a straight line
+fitSpeedVsResp <- lm(formula=EaSpeed ~ EaResp, data = allEaSpeedAndRespiration)
+print(fitSpeedVsResp)
 
 
 ########### Now use the same strategy to look for optimal speed:
