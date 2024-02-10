@@ -892,8 +892,8 @@ ggsave(file="aaaa_estimated_short_term_speed_from_model.png", dpi = 600, width =
 
 
 # Now calculate the relation between activation energies for
-# respiration and for movemetn over a number of values
-allEa <- seq(0.3, 1, by=0.05)
+# respiration and for movement over a number of values
+allEa <- seq(0.05, 1, by=0.05)
 allEaSpeed <- rep(NA, length(allEa))
 for (eee in 1:length(allEa))
 {
@@ -930,15 +930,16 @@ allEaSpeedAndRespiration <- data.frame(EaResp <- allEa, EaSpeed <- allEaSpeed)
 
 gComp <- ggplot(data=allEaSpeedAndRespiration, aes(x=EaResp, y=EaSpeed)) + 
   geom_point(size= 3) +
-  scale_x_continuous(name=expression(paste("Respiration E (eV)")), limits=c(0,1.2)) +
-  scale_y_continuous(name=expression(paste("Speed E (eV)")), limits=c(0,1.2)) +
-  theme_classic(base_size = 18)  
-  # theme(legend.position = "none") # + # This removes the legend above
+  scale_x_continuous(name=expression(paste("Respiration E (eV)")), limits=c(0,1), breaks=seq(0, 1, by=0.25)) +
+  scale_y_continuous(name=expression(paste("Speed E (eV)")), limits=c(0,1), breaks=seq(0, 1, by=0.25)) +
+  theme_classic(base_size = 22) +
+  theme(legend.position = "none") # + # This removes the legend above
 
 gComp
 
 ggsave(file="predicted_AE_speed_respiration.pdf", device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
 ggsave(file="predicted_AE_speed_respiration.png", dpi = 600, width = 12, height = 10, units = "cm")
+
 
 
 ########### Now use the same strategy to look for optimal speed:
