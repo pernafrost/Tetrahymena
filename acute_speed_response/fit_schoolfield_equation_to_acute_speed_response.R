@@ -272,7 +272,7 @@ for (aaa in 1:length(allTAdaptation))
         geom_point() + 
         # geom_jitter(position = position_jitter(height = 0, width = .3)) +
         geom_smooth(method="lm", se=FALSE, formula=y ~ x, colour="red", na.rm=TRUE) + 
-        scale_y_continuous(name=expression(paste("log10(speed) (", mu, "m/s)"))) +
+        scale_y_continuous(name=expression(paste('log'[10]*'(speed)'," ",  mu, "m/s)"))) +
         scale_x_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3))) +
         theme_classic(base_size = 10) +
         theme(legend.position = "none") + 
