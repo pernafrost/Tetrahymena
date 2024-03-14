@@ -34,6 +34,6 @@ There are also other data files:
 6) /preliminary_data_oxygen_concentration/data_cell_volume_vs_oxygen.csv # where there are measurements of cell volume for cells kept at different oxygen concentrations
 7) /speed_over_time_preliminary_experiment/track_analysis_results_individual_particles_preliminary_experiment_long_tracking.csv # with measurements of acute speed responses from preliminary experiments and over a relatively long period of time (20 minutes)
 
-The R code in each folder is meant to run on the data file in the same folder (or sometimes on data from different folders, but the paths indicate which files are read by each script) and then each script produces a number of figures or processed additional datasets (e.g. tables), which are saved to disk.
+The R code in each folder is meant to run on the data file in the same folder (or sometimes on data from different folders, but the paths indicate which files are read by each script) and then each script produces a number of figures or processed additional datasets (e.g. tables), which are saved to disk. Before running each script, it is recommended that all the file paths inside the script are double checked and that the relevant libraries are installed.
 
 
