@@ -628,7 +628,7 @@ plotG1 <- ggplot(allFitData, aes(x=temp, y=rate, color=as.factor(tAdaptation), s
   geom_line() +
   scale_x_continuous(name="Temp. (°C)",  limits=c(10, 25)) +
   # scale_y_continuous(name="Rate (nW)",  limits=c(0.1, 3), trans = 'log10', sec.axis = sec_axis( trans=~.*W_to_respiration_rate(1e-9), name=expression(paste("Rate (",  mu, "mol[O2]/cell/min", ")"))))  +
-  scale_y_continuous(name="Rate (nW)",  limits=c(0.1, 1), trans = 'log10')  +
+  scale_y_continuous(name="Rate (nW)",  limits=c(0.2, 2), trans = 'log10', breaks=c(0.2,0.5,1,2))  +
   theme_classic(base_size=18) +
   scale_color_manual(values=lineColours) +
   scale_linetype_manual(values=lineTypes) + 
