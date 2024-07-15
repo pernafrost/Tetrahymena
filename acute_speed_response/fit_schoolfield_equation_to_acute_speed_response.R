@@ -1,4 +1,5 @@
 rm(list=ls()) # clean memory
+if(!is.null(dev.list())) dev.off()
 
 # detach all packages
 # lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE)
@@ -50,6 +51,7 @@ if (saveFigures == TRUE)
 {        
   library(Cairo)
 }
+library(viridis) # colour blind friendly palette, works in B&W also
 
 referenceTemperature <- 20 # note that this is not used; check in the code
 skipMotherCulture <- TRUE # whether to skip the mother culture from this analysis
@@ -128,6 +130,12 @@ plotListExtra = list() # I have two plot lists, one for the first nine plots, to
 plotCounter <- 0
 plotCounterExtra <- 0
 iteration = 0
+
+
+# I will save the data with the speed rescaled to the
+# reference temperature for swimming analysis
+allExportedDataForSwimmingAnalysis <- list()
+
 for (aaa in 1:length(allTAdaptation))
 {
   # print(paste("Adaptation temp.: ", allTAdaptation[aaa]))
@@ -882,13 +890,75 @@ for (aaa in 1:length(allTAdaptation))
         
       }
       
+      ##  Rescale speed values to remove the effect of temperature
+      # Remove extreme temperature for which the Schoolfield might not give a good
+      # fit of the data
+      currentConditionTopSpeedForSwimmingAnalysis <- subset(currentConditionTopSpeed, tTest >=15 & tTest <=30)
+      
+      # get the predicted speed based on the fitted Schoolfield
+      new_data_bis <- data.frame(temp = currentConditionTopSpeedForSwimmingAnalysis$tTest)
+      
+      # augment the data from the fit to get the fitted value at each temperature
+      preds_bis <- augment(fit, newdata = new_data_bis)
+      currentConditionTopSpeedForSwimmingAnalysis$medianSpeedFromFit <- preds_bis$.fitted
+      
+      # rescale the measured values of speed to match what would be expected if the
+      # cells were measured at the reference temperature of 20 degrees
+      # this is done based on the Schoolfield relation: S=S0*schoolfield
+      currentConditionTopSpeedForSwimmingAnalysis$temperatureCorrectedSpeed <- currentConditionTopSpeedForSwimmingAnalysis$medianSpeed * calculatedFitParameters$r_tref /currentConditionTopSpeedForSwimmingAnalysis$medianSpeedFromFit
+      currentConditionTopSpeedForSwimmingAnalysis$log10temperatureCorrectedSpeed <- log10(currentConditionTopSpeedForSwimmingAnalysis$temperatureCorrectedSpeed)
       
       
+      # plot temperature corrected speed values
+      # a plot to check how speed changes with cell size
+      ggplot(currentConditionTopSpeedForSwimmingAnalysis, aes(x=estimatedlogVolume, y=log10temperatureCorrectedSpeed, color=tTest)) +
+        geom_point() + 
+        # geom_jitter(position = position_jitter(height = 0, width = .3)) +
+        geom_smooth(method="lm", se=FALSE, formula=y ~ x, colour="red", na.rm=TRUE) + 
+        scale_y_continuous(name=expression(paste('log'[10]*'(speed)'," ",  mu, "m/s"))) +
+        scale_x_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3))) +
+        theme_classic(base_size = 15) +
+        # theme(legend.position = "none") + 
+        # ggtitle(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll])) +
+        # scale_color_continuous() +
+        scale_color_viridis(option="C", limits = c(15, 30)) +
+        coord_fixed() +
+        # facet_wrap(vars(tTest)) +
+        labs(color="T:")
       
+      allExportedDataForSwimmingAnalysis[[iteration]] <- currentConditionTopSpeedForSwimmingAnalysis
+      
+
       
     }
   }
 }
+
+allExportedDataForSwimmingAnalysisDF <- as.data.frame(do.call("rbind", allExportedDataForSwimmingAnalysis))
+
+##### plot temperature corrected speed values
+
+# adding new columns with values as factors to simplify facet titles,
+# sorting of plots in a figure, etc.
+allExportedDataForSwimmingAnalysisDF$density_as_factor = factor(paste(allExportedDataForSwimmingAnalysisDF$mediumConcentration, "%", sep=""), levels=paste(as.character(sort(as.numeric(unique(allExportedDataForSwimmingAnalysisDF$mediumConcentration)))), "%", sep=""))
+allExportedDataForSwimmingAnalysisDF$tAdapt_as_factor = factor(paste(allExportedDataForSwimmingAnalysisDF$tAdaptation, "°C", sep=""), levels=paste(as.character(sort(unique(allExportedDataForSwimmingAnalysisDF$tAdaptation))), "°C", sep=""))
+
+ggplot(allExportedDataForSwimmingAnalysisDF, aes(x=estimatedlogVolume, y=log10temperatureCorrectedSpeed, color=tTest)) +
+  geom_point() + 
+  # geom_jitter(position = position_jitter(height = 0, width = .3)) +
+  geom_smooth(method="lm", se=FALSE, formula=y ~ x, colour="red", na.rm=TRUE) + 
+  scale_y_continuous(name=expression(paste('log'[10]*'(speed)'," ",  mu, "m/s"))) +
+  scale_x_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3))) +
+  theme_classic(base_size = 15) +
+  # theme(legend.position = "none") + 
+  # ggtitle(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll])) +
+  # scale_color_continuous() +
+  scale_color_viridis(option="C", limits = c(15, 30)) +
+  coord_fixed() +
+  facet_grid(rows=vars(tAdapt_as_factor), cols=vars(density_as_factor)) +
+  labs(color="T:")
+
+write.table(allExportedDataForSwimmingAnalysisDF, "allExportedDataForSwimmingAnalysisDF.csv", append = FALSE, sep = ", ", row.names = FALSE)
 
 
 print(allFitResults)
