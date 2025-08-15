@@ -314,8 +314,10 @@ plotG1 <- ggplot(populationGrowthData, aes(x=date_number, y=growth_rate_gen_per_
   # scale_alpha_continuous(range=c(0.5, 1)) + 
   scale_fill_manual(values= plotColours)# this is the zissou1 palette
 plotG1
+
 # without markers
 plotG1 <- ggplot(populationGrowthData, aes(x=date_number, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt, fill=factor(tAdapt))) +
+  geom_vline(xintercept=54, color="gray", linetype="dashed") +
   # geom_point(size=2, alpha=0.4, colour="black") +
   # geom_jitter(size=2, alpha=0.4, colour="black", position = position_jitter(height = 0, width = .4)) +
   # geom_smooth(method=lm, formula='y~x', se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)))) + 
@@ -727,180 +729,180 @@ library('emmeans')
 emmeans(m, ~ tAdapt)
 emmeans(m, ~ density)
 
-print("Now I try to estimate biomass production.")
-print("In order to do this, I need to read an estimate of the change in cell volume")
-print(paste("in the file", fileNameBodySizeData))
-print("which is produced by the script analysis_of_body_size_from_tracking_data.R")
-bodySizeFitResults <- read.table(file = fileNameBodySizeData, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
-
-bodySizeFitResults$tAdapt_and_density <- paste("T", bodySizeFitResults$tAdaptation, "_C", bodySizeFitResults$mediumConcentration, "_M0", sep="")
-
-# fit straight lines to population growth data
-populationGrowthData$date_number_from_subculture <- populationGrowthData$date_number -54
-growthRateFit <- as.data.frame(populationGrowthData 
-              %>% group_by(tAdapt_and_density, tAdapt, density) 
-              %>% do(
-              popfitIntercept = (coefficients(summary(lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .)))[1,1]), 
-              popfitSlope = (coefficients(summary(lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .)))[2,1]),
-              popfitInterceptSe = (coefficients(summary(lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .)))[1,2]), 
-              popfitSlopeSe = (coefficients(summary(lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .)))[2,2]))
-              )
-sapply(growthRateFit, typeof) # sapply(growthRateFit, class)
-growthRateFit$popfitIntercept <- as.double(growthRateFit$popfitIntercept)
-growthRateFit$popfitSlope <- as.double(growthRateFit$popfitSlope)
-growthRateFit$popfitInterceptSe <- as.double(growthRateFit$popfitInterceptSe)
-growthRateFit$popfitSlopeSe <- as.double(growthRateFit$popfitSlopeSe)
-sapply(growthRateFit, typeof) # sapply(growthRateFit, class)
-
-
-dfChangesDuringAdaptation <- merge(growthRateFit, bodySizeFitResults, by="tAdapt_and_density")
-
-# If the cells were keeping the same volume, the biomass production per unit biomass
-# would be the same as the population growth rate.
-# I have two equations for the change over time of Tetrahymena:
-# I fitted a linear trendline to the log of cell volume
-# log(V(t)) = log(V(0)) + a*t
-# and the population growth is described by:
-# dN/dt = r*N --> dN/N = rdt --> log(N(t)) = r*t + log(N0)
-# these give:
-# a = log(V(t)/V(0))/t
-# and
-# r = log(N(t)/N(0))/t
-# I used log2 for the population growth rate and log10 for the body size
-# If I wanted to use the natural log I should take r/log(2) and a/log(10)
-# If I consider that r changes over time:
-# dN/dt = r*(1+bt)*N --> dN/N = r(1+bt)dt --> log(N) = r*t + 1/2*b*t^2 + log(N0)
-# r + 1/2bt = log(N(t)/N(0))/t
-# I could calculate the biomass production per cell, or the biomass production per unit biomass
-# the biomass production per unit biomass is the same as the population growth rate, except that at the end of one day the size 
-# of individual cells has changed:
-dfChangesDuringAdaptation$biomassProductionperDayT0 <- 10^dfChangesDuringAdaptation$fitSlope * 2^dfChangesDuringAdaptation$popfitIntercept
-dfChangesDuringAdaptation$biomassProductionperDayT30 <- 10^dfChangesDuringAdaptation$fitSlope * 2^(dfChangesDuringAdaptation$popfitIntercept + dfChangesDuringAdaptation$popfitSlope * 30)
-
-dfChangesDuringAdaptation$biomassProductionum3perCellPerDayT0 <- 10^dfChangesDuringAdaptation$sizeT0 * 2^dfChangesDuringAdaptation$popfitIntercept
-dfChangesDuringAdaptation$biomassProductionum3perCellPerDayT30 <- 10^dfChangesDuringAdaptation$sizeT30 * 2^(dfChangesDuringAdaptation$popfitIntercept + dfChangesDuringAdaptation$popfitSlope * 30)
-
-dfChangesDuringAdaptation$growthRateT0 <- dfChangesDuringAdaptation$popfitIntercept
-dfChangesDuringAdaptation$growthRateT30 <- dfChangesDuringAdaptation$popfitIntercept + dfChangesDuringAdaptation$popfitSlope * 30
-
-
-# Here I need to reorganise the dataframe because I want the data at time 0 and time
-# 30 in the same column. I use the library reshape2 for this
-if (!require(reshape2))
-{install.packages("reshape2")}
-
-
-# In order to use ggplot I need to reshape the dataframe
-library(reshape2)
-dR <- reshape(dfChangesDuringAdaptation, direction='long', 
-              varying=c('biomassProductionperDayT0', 'biomassProductionperDayT30'), 
-              timevar='t0ort30',
-              times=c('t0', 't30'),
-              v.names='biomassProdRate',
-              idvar='newID')
-
-
-plotBiomass <- ggplot(dR, aes(t0ort30, biomassProdRate, colour=factor(mediumConcentration + tAdaptation*100), fill=factor(tAdaptation), shape=factor(mediumConcentration), size=factor(mediumConcentration))) +
-  # geom_boxplot(width=0.6) + # add a box plot
-  geom_line(aes(group = newID), position=position_dodge(width=0)) +
-  geom_point(size=3, position=position_dodge(width=0)) +
-  theme_classic(base_size = 20) + # this defines the "theme" and the font size, other options for theme are theme_minimal, theme_dark, etc.
-  # labs(fill = "Condition:") +# this specifies a custom legend
-  theme(legend.position="none") + 
-  scale_y_continuous(name=expression(paste(Delta, ' Biomass'," (1/day)")), limits=c(0,20)) +
-  # scale_y_continuous(name=expression(paste('Biomass prod.'," (",  mu, 'm'^3, "/", mu, 'm'^3, "/day)")), limits=c(0,20)) +
-  scale_x_discrete(name="Time (days)", labels=c("0", 30), expand=c(0.1,0.1)) + # in this case the x scale is not numerical
-  scale_colour_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
-  scale_fill_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) +
-  scale_size_manual( values = c(0.4, 0.6, 0.8) ) +
-  scale_shape_manual(values=c(21, 24, 22)) # shapes for the markers
-plotBiomass
-
-
-dR <- reshape(dfChangesDuringAdaptation, direction='long', 
-              varying=c('biomassProductionum3perCellPerDayT0', 'biomassProductionum3perCellPerDayT30'), 
-              timevar='t0ort30',
-              times=c('t0', 't30'),
-              v.names='biomassProdRatePerCell',
-              idvar='newID')
-
-
-plotBiomassPerCell <- ggplot(dR, aes(t0ort30, biomassProdRatePerCell, colour=factor(mediumConcentration + tAdaptation*100), fill=factor(tAdaptation), shape=factor(mediumConcentration), size=factor(mediumConcentration))) +
-  # geom_boxplot(width=0.6) + # add a box plot
-  geom_line(aes(group = newID), position=position_dodge(width=0)) +
-  geom_point(size=3, position=position_dodge(width=0)) +
-  theme_classic(base_size = 20) + # this defines the "theme" and the font size, other options for theme are theme_minimal, theme_dark, etc.
-  # labs(fill = "Condition:") +# this specifies a custom legend
-  theme(legend.position="none") + 
-  scale_y_continuous(name=expression(paste(Delta, ' Biomass'," (",  mu, 'm'^3, "/cell/day)")), trans="log10", limits=c(1e4, 1e6)) +
-  scale_x_discrete(name="Time (days)", labels=c("0", 30), expand=c(0.1,0.1)) + # in this case the x scale is not numerical
-  scale_colour_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
-  scale_fill_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) +
-  scale_size_manual( values = c(0.4, 0.6, 0.8) ) +
-  scale_shape_manual(values=c(21, 24, 22)) # shapes for the markers
-plotBiomassPerCell
-
-    
-dR <- reshape(dfChangesDuringAdaptation, direction='long', 
-              varying=c('growthRateT0', 'growthRateT30'), 
-              timevar='t0ort30',
-              times=c('t0', 't30'),
-              v.names='growthRate',
-              idvar='newID')
-
-plotGrowth <- ggplot(dR, aes(t0ort30, growthRate, colour=factor(mediumConcentration + tAdaptation*100), fill=factor(tAdaptation), shape=factor(mediumConcentration), size=factor(mediumConcentration))) +
-  # geom_boxplot(width=0.6) + # add a box plot
-  geom_line(aes(group = newID), position=position_dodge(width=0)) +
-  geom_point(size=3, position=position_dodge(width=0)) +
-  theme_classic(base_size = 20) + # this defines the "theme" and the font size, other options for theme are theme_minimal, theme_dark, etc.
-  # labs(fill = "Condition:") +# this specifies a custom legend
-  theme(legend.position="none") + 
-  scale_y_continuous(name=expression(paste('Growth'," (gen/day)")), limits=c(0,5)) +
-  scale_x_discrete(name="Time (days)", labels=c("0", 30), expand=c(0.1,0.1)) + # in this case the x scale is not numerical
-  scale_colour_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
-  scale_fill_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) +
-  scale_size_manual( values = c(0.4, 0.6, 0.8) ) +
-  scale_shape_manual(values=c(21, 24, 22)) # shapes for the markers
-plotGrowth
-
-dR <- reshape(dfChangesDuringAdaptation, direction='long', 
-              varying=c('sizeT0', 'sizeT30'), 
-              timevar='t0ort30',
-              times=c('t0', 't30'),
-              v.names='bodySize',
-              idvar='newID')
-
-plotBodySize <- ggplot(dR, aes(t0ort30, 10^bodySize, colour=factor(mediumConcentration + tAdaptation*100), fill=factor(tAdaptation), shape=factor(mediumConcentration), size=factor(mediumConcentration))) +
-  # geom_boxplot(width=0.6) + # add a box plot
-  geom_line(aes(group = newID), position=position_dodge(width=0)) +
-  geom_point(size=3, position=position_dodge(width=0)) +
-  theme_classic(base_size = 20) + # this defines the "theme" and the font size, other options for theme are theme_minimal, theme_dark, etc.
-  # labs(fill = "Condition:") +# this specifies a custom legend
-  theme(legend.position="none") + 
-  scale_y_continuous(name=expression(paste('Volume '," ",  mu, 'm'^3)), limits=c(0,30000)) +
-  scale_x_discrete(name="Time (days)", labels=c("0", 30), expand=c(0.1,0.1)) + # in this case the x scale is not numerical
-  scale_colour_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
-  scale_fill_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) +
-  scale_size_manual( values = c(0.4, 0.6, 0.8) ) +
-  scale_shape_manual(values=c(21, 24, 22)) # shapes for the markers
-plotBodySize
-
-if (!require(ggpubr))
-{install.packages("ggpubr")}
-
-# Make a figure with all the plots
-library(ggpubr)
-# combine together the two plots into a single figure
-fullFigure <- ggarrange(plotGrowth, plotBodySize, plotBiomass, plotBiomassPerCell, ncol = 2, nrow = 2, common.legend=FALSE, align = "v")
-fullFigure
-ggsave(file="figure_growth_and_biomass_over_time.png", dpi = 600, width = 24, height = 20, units = "cm")
-ggsave(file="figure_growth_and_biomass_over_time.eps", device="eps", dpi = 1200, width = 24, height = 20, units = "cm")
-library(Cairo)
-ggsave(file="figure_growth_and_biomass_over_time.pdf", device=cairo_pdf, dpi = 1200, width = 24, height = 20, units = "cm")
-
-# This shows the values of fitted slope for the population growth rate
-# to see when the growth rate is decreasing or increasing over time
-cbind(dfChangesDuringAdaptation$tAdapt_and_density, dfChangesDuringAdaptation$popfitSlope - dfChangesDuringAdaptation$popfitSlopeSe, dfChangesDuringAdaptation$popfitSlope + dfChangesDuringAdaptation$popfitSlopeSe)
-
-write.table(dfChangesDuringAdaptation, "changes_of_size_and_pop_growth_during_adaptation.csv", append = FALSE, sep = ",", row.names = FALSE)
-
+# print("Now I try to estimate biomass production.")
+# print("In order to do this, I need to read an estimate of the change in cell volume")
+# print(paste("in the file", fileNameBodySizeData))
+# print("which is produced by the script analysis_of_body_size_from_tracking_data.R")
+# bodySizeFitResults <- read.table(file = fileNameBodySizeData, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
+# 
+# bodySizeFitResults$tAdapt_and_density <- paste("T", bodySizeFitResults$tAdaptation, "_C", bodySizeFitResults$mediumConcentration, "_M0", sep="")
+# 
+# # fit straight lines to population growth data
+# populationGrowthData$date_number_from_subculture <- populationGrowthData$date_number -54
+# growthRateFit <- as.data.frame(populationGrowthData 
+#               %>% group_by(tAdapt_and_density, tAdapt, density) 
+#               %>% do(
+#               popfitIntercept = (coefficients(summary(lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .)))[1,1]), 
+#               popfitSlope = (coefficients(summary(lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .)))[2,1]),
+#               popfitInterceptSe = (coefficients(summary(lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .)))[1,2]), 
+#               popfitSlopeSe = (coefficients(summary(lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .)))[2,2]))
+#               )
+# sapply(growthRateFit, typeof) # sapply(growthRateFit, class)
+# growthRateFit$popfitIntercept <- as.double(growthRateFit$popfitIntercept)
+# growthRateFit$popfitSlope <- as.double(growthRateFit$popfitSlope)
+# growthRateFit$popfitInterceptSe <- as.double(growthRateFit$popfitInterceptSe)
+# growthRateFit$popfitSlopeSe <- as.double(growthRateFit$popfitSlopeSe)
+# sapply(growthRateFit, typeof) # sapply(growthRateFit, class)
+# 
+# 
+# dfChangesDuringAdaptation <- merge(growthRateFit, bodySizeFitResults, by="tAdapt_and_density")
+# 
+# # If the cells were keeping the same volume, the biomass production per unit biomass
+# # would be the same as the population growth rate.
+# # I have two equations for the change over time of Tetrahymena:
+# # I fitted a linear trendline to the log of cell volume
+# # log(V(t)) = log(V(0)) + a*t
+# # and the population growth is described by:
+# # dN/dt = r*N --> dN/N = rdt --> log(N(t)) = r*t + log(N0)
+# # these give:
+# # a = log(V(t)/V(0))/t
+# # and
+# # r = log(N(t)/N(0))/t
+# # I used log2 for the population growth rate and log10 for the body size
+# # If I wanted to use the natural log I should take r/log(2) and a/log(10)
+# # If I consider that r changes over time:
+# # dN/dt = r*(1+bt)*N --> dN/N = r(1+bt)dt --> log(N) = r*t + 1/2*b*t^2 + log(N0)
+# # r + 1/2bt = log(N(t)/N(0))/t
+# # I could calculate the biomass production per cell, or the biomass production per unit biomass
+# # the biomass production per unit biomass is the same as the population growth rate, except that at the end of one day the size 
+# # of individual cells has changed:
+# dfChangesDuringAdaptation$biomassProductionperDayT0 <- 10^dfChangesDuringAdaptation$fitSlope * 2^dfChangesDuringAdaptation$popfitIntercept
+# dfChangesDuringAdaptation$biomassProductionperDayT30 <- 10^dfChangesDuringAdaptation$fitSlope * 2^(dfChangesDuringAdaptation$popfitIntercept + dfChangesDuringAdaptation$popfitSlope * 30)
+# 
+# dfChangesDuringAdaptation$biomassProductionum3perCellPerDayT0 <- 10^dfChangesDuringAdaptation$sizeT0 * 2^dfChangesDuringAdaptation$popfitIntercept
+# dfChangesDuringAdaptation$biomassProductionum3perCellPerDayT30 <- 10^dfChangesDuringAdaptation$sizeT30 * 2^(dfChangesDuringAdaptation$popfitIntercept + dfChangesDuringAdaptation$popfitSlope * 30)
+# 
+# dfChangesDuringAdaptation$growthRateT0 <- dfChangesDuringAdaptation$popfitIntercept
+# dfChangesDuringAdaptation$growthRateT30 <- dfChangesDuringAdaptation$popfitIntercept + dfChangesDuringAdaptation$popfitSlope * 30
+# 
+# 
+# # Here I need to reorganise the dataframe because I want the data at time 0 and time
+# # 30 in the same column. I use the library reshape2 for this
+# if (!require(reshape2))
+# {install.packages("reshape2")}
+# 
+# 
+# # In order to use ggplot I need to reshape the dataframe
+# library(reshape2)
+# dR <- reshape(dfChangesDuringAdaptation, direction='long', 
+#               varying=c('biomassProductionperDayT0', 'biomassProductionperDayT30'), 
+#               timevar='t0ort30',
+#               times=c('t0', 't30'),
+#               v.names='biomassProdRate',
+#               idvar='newID')
+# 
+# 
+# plotBiomass <- ggplot(dR, aes(t0ort30, biomassProdRate, colour=factor(mediumConcentration + tAdaptation*100), fill=factor(tAdaptation), shape=factor(mediumConcentration), size=factor(mediumConcentration))) +
+#   # geom_boxplot(width=0.6) + # add a box plot
+#   geom_line(aes(group = newID), position=position_dodge(width=0)) +
+#   geom_point(size=3, position=position_dodge(width=0)) +
+#   theme_classic(base_size = 20) + # this defines the "theme" and the font size, other options for theme are theme_minimal, theme_dark, etc.
+#   # labs(fill = "Condition:") +# this specifies a custom legend
+#   theme(legend.position="none") + 
+#   scale_y_continuous(name=expression(paste(Delta, ' Biomass'," (1/day)")), limits=c(0,20)) +
+#   # scale_y_continuous(name=expression(paste('Biomass prod.'," (",  mu, 'm'^3, "/", mu, 'm'^3, "/day)")), limits=c(0,20)) +
+#   scale_x_discrete(name="Time (days)", labels=c("0", 30), expand=c(0.1,0.1)) + # in this case the x scale is not numerical
+#   scale_colour_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
+#   scale_fill_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) +
+#   scale_size_manual( values = c(0.4, 0.6, 0.8) ) +
+#   scale_shape_manual(values=c(21, 24, 22)) # shapes for the markers
+# plotBiomass
+# 
+# 
+# dR <- reshape(dfChangesDuringAdaptation, direction='long', 
+#               varying=c('biomassProductionum3perCellPerDayT0', 'biomassProductionum3perCellPerDayT30'), 
+#               timevar='t0ort30',
+#               times=c('t0', 't30'),
+#               v.names='biomassProdRatePerCell',
+#               idvar='newID')
+# 
+# 
+# plotBiomassPerCell <- ggplot(dR, aes(t0ort30, biomassProdRatePerCell, colour=factor(mediumConcentration + tAdaptation*100), fill=factor(tAdaptation), shape=factor(mediumConcentration), size=factor(mediumConcentration))) +
+#   # geom_boxplot(width=0.6) + # add a box plot
+#   geom_line(aes(group = newID), position=position_dodge(width=0)) +
+#   geom_point(size=3, position=position_dodge(width=0)) +
+#   theme_classic(base_size = 20) + # this defines the "theme" and the font size, other options for theme are theme_minimal, theme_dark, etc.
+#   # labs(fill = "Condition:") +# this specifies a custom legend
+#   theme(legend.position="none") + 
+#   scale_y_continuous(name=expression(paste(Delta, ' Biomass'," (",  mu, 'm'^3, "/cell/day)")), trans="log10", limits=c(1e4, 1e6)) +
+#   scale_x_discrete(name="Time (days)", labels=c("0", 30), expand=c(0.1,0.1)) + # in this case the x scale is not numerical
+#   scale_colour_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
+#   scale_fill_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) +
+#   scale_size_manual( values = c(0.4, 0.6, 0.8) ) +
+#   scale_shape_manual(values=c(21, 24, 22)) # shapes for the markers
+# plotBiomassPerCell
+# 
+#     
+# dR <- reshape(dfChangesDuringAdaptation, direction='long', 
+#               varying=c('growthRateT0', 'growthRateT30'), 
+#               timevar='t0ort30',
+#               times=c('t0', 't30'),
+#               v.names='growthRate',
+#               idvar='newID')
+# 
+# plotGrowth <- ggplot(dR, aes(t0ort30, growthRate, colour=factor(mediumConcentration + tAdaptation*100), fill=factor(tAdaptation), shape=factor(mediumConcentration), size=factor(mediumConcentration))) +
+#   # geom_boxplot(width=0.6) + # add a box plot
+#   geom_line(aes(group = newID), position=position_dodge(width=0)) +
+#   geom_point(size=3, position=position_dodge(width=0)) +
+#   theme_classic(base_size = 20) + # this defines the "theme" and the font size, other options for theme are theme_minimal, theme_dark, etc.
+#   # labs(fill = "Condition:") +# this specifies a custom legend
+#   theme(legend.position="none") + 
+#   scale_y_continuous(name=expression(paste('Growth'," (gen/day)")), limits=c(0,5)) +
+#   scale_x_discrete(name="Time (days)", labels=c("0", 30), expand=c(0.1,0.1)) + # in this case the x scale is not numerical
+#   scale_colour_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
+#   scale_fill_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) +
+#   scale_size_manual( values = c(0.4, 0.6, 0.8) ) +
+#   scale_shape_manual(values=c(21, 24, 22)) # shapes for the markers
+# plotGrowth
+# 
+# dR <- reshape(dfChangesDuringAdaptation, direction='long', 
+#               varying=c('sizeT0', 'sizeT30'), 
+#               timevar='t0ort30',
+#               times=c('t0', 't30'),
+#               v.names='bodySize',
+#               idvar='newID')
+# 
+# plotBodySize <- ggplot(dR, aes(t0ort30, 10^bodySize, colour=factor(mediumConcentration + tAdaptation*100), fill=factor(tAdaptation), shape=factor(mediumConcentration), size=factor(mediumConcentration))) +
+#   # geom_boxplot(width=0.6) + # add a box plot
+#   geom_line(aes(group = newID), position=position_dodge(width=0)) +
+#   geom_point(size=3, position=position_dodge(width=0)) +
+#   theme_classic(base_size = 20) + # this defines the "theme" and the font size, other options for theme are theme_minimal, theme_dark, etc.
+#   # labs(fill = "Condition:") +# this specifies a custom legend
+#   theme(legend.position="none") + 
+#   scale_y_continuous(name=expression(paste('Volume '," ",  mu, 'm'^3)), limits=c(0,30000)) +
+#   scale_x_discrete(name="Time (days)", labels=c("0", 30), expand=c(0.1,0.1)) + # in this case the x scale is not numerical
+#   scale_colour_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
+#   scale_fill_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) +
+#   scale_size_manual( values = c(0.4, 0.6, 0.8) ) +
+#   scale_shape_manual(values=c(21, 24, 22)) # shapes for the markers
+# plotBodySize
+# 
+# if (!require(ggpubr))
+# {install.packages("ggpubr")}
+# 
+# # Make a figure with all the plots
+# library(ggpubr)
+# # combine together the two plots into a single figure
+# fullFigure <- ggarrange(plotGrowth, plotBodySize, plotBiomass, plotBiomassPerCell, ncol = 2, nrow = 2, common.legend=FALSE, align = "v")
+# fullFigure
+# ggsave(file="figure_growth_and_biomass_over_time.png", dpi = 600, width = 24, height = 20, units = "cm")
+# ggsave(file="figure_growth_and_biomass_over_time.eps", device="eps", dpi = 1200, width = 24, height = 20, units = "cm")
+# library(Cairo)
+# ggsave(file="figure_growth_and_biomass_over_time.pdf", device=cairo_pdf, dpi = 1200, width = 24, height = 20, units = "cm")
+# 
+# # This shows the values of fitted slope for the population growth rate
+# # to see when the growth rate is decreasing or increasing over time
+# cbind(dfChangesDuringAdaptation$tAdapt_and_density, dfChangesDuringAdaptation$popfitSlope - dfChangesDuringAdaptation$popfitSlopeSe, dfChangesDuringAdaptation$popfitSlope + dfChangesDuringAdaptation$popfitSlopeSe)
+# 
+# write.table(dfChangesDuringAdaptation, "changes_of_size_and_pop_growth_during_adaptation.csv", append = FALSE, sep = ",", row.names = FALSE)
+# 
