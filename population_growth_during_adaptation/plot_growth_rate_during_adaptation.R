@@ -1,6 +1,6 @@
 rm(list=ls()) # clean memory
 if(!is.null(dev.list())) dev.off()
-
+library(dplyr)
 
 #################################################################################################################
 # Function to calculate the mean and the standard deviation
@@ -26,11 +26,14 @@ data_summary <- function(data, varname, groupnames){
 }
 
 
-
 # file name file.choose() # 
 fileName <- "~/Tetrahymena/population_growth_during_adaptation/growth_data_during_adaptation.csv"
 # The following file is produced by the script analysis_of_body_size_from_tracking_data.R
 fileNameBodySizeData <- "/Tetrahymena/body_size/estimated_body_size_change_during_adaptation.csv"
+
+# Decide whether to focus the analyses on stable cultures, i.e. when
+# per capita growth rate does not change over time
+focusOnStableCultures <- TRUE
 
 # change directory
 setwd(dirname(fileName))
@@ -76,10 +79,23 @@ populationGrowthData$date_number <- populationGrowthData$date_number - min(popul
 # isolate the data for the mother culture (before splitting)
 motherCulture <- subset(populationGrowthData, isMotherCulture == 1)
 
+# Let's check if the growth rate is increasing or constant:
+fitIncreasing <- lm(growth_rate_gen_per_day ~ date_number + line, data=motherCulture, na.action=na.omit)
+fitFlat <- lm(growth_rate_gen_per_day ~ 1 + line, data=motherCulture, na.action=na.omit)
+
+summary(fitIncreasing)$r.squared
+summary(fitFlat)$r.squared
+
+bic_on_models <- BIC(fitIncreasing,fitFlat)
+bestModel <- which.min(bic_on_models$BIC)
+
+if (focusOnStableCultures)
+{useFormula <- 'y~1'} else {useFormula <- 'y~x'}
+
 library(ggplot2)
 ggplot(motherCulture, aes(x=date_number, y=growth_rate_gen_per_day, shape=line)) +
   geom_point(size=4, alpha=0.9, aes(colour=factor(line))) + 
-  geom_smooth(method=lm, formula='y~x', se=TRUE, fullrange=TRUE, colour="black", aes(fill=factor(tAdapt))) + 
+  geom_smooth(method=lm, formula=useFormula, se=TRUE, fullrange=TRUE, colour="black", aes(fill=factor(tAdapt))) + 
   theme_classic(base_size = 22) +
   scale_y_continuous(name="generations per day") +
   scale_x_continuous(name="adaptation time (days)") + 
@@ -90,14 +106,52 @@ ggplot(motherCulture, aes(x=date_number, y=growth_rate_gen_per_day, shape=line))
 ggsave(file="tetrahymena_mother_culture_growth_rate.png", dpi = 600, width = 15, height = 12, units = "cm")
 ggsave(file="tetrahymena_mother_culture_growth_rate.eps", device="eps", dpi = 1200, width = 15, height = 10, units = "cm")
 
+# Let's check if the growth rate is increasing or constant:
+fitIncreasing <- lm(growth_rate_gen_per_day ~ date_number, data=motherCulture, na.action=na.omit)
+fitFlat <- lm(growth_rate_gen_per_day ~ 1, data=motherCulture, na.action=na.omit)
+print(fitFlat)
+# for comparison:
+mean(motherCulture$growth_rate_gen_per_day, na.rm=TRUE)
+
+
+summary(fitIncreasing)$r.squared
+summary(fitFlat)$r.squared
+
+bic_on_models <- BIC(fitIncreasing,fitFlat)
+bestModel <- which.min(bic_on_models$BIC)
+print(paste("Best approximation is that the fit is increasing (1) or constant (2): ", bestModel))
+
+if (focusOnStableCultures)
+{useFormula <- 'y~1'} else {useFormula <- 'y~x'}
+
+ggplot(motherCulture, aes(x=date_number, y=growth_rate_gen_per_day, shape=tAdapt)) +
+  geom_point(size=4, alpha=0.9, aes(colour=factor(tAdapt))) + 
+  geom_smooth(method=lm, formula=useFormula, se=TRUE, fullrange=TRUE, colour="black", aes(fill=factor(tAdapt))) + 
+  theme_classic(base_size = 22) +
+  scale_y_continuous(name="generations per day") +
+  scale_x_continuous(name="adaptation time (days)") + 
+  theme(legend.position = "none") + 
+  scale_color_manual(values=c("#EBCC2A", "#3B9AB2", "#F21A00")) + # this is the zissou1 palette
+  scale_fill_manual(values= c("#EBCC2A", "#3B9AB2", "#F21A00"))# this is the zissou1 palette
+
+ggsave(file="tetrahymena_mother_culture_growth_rate_both_lines.png", dpi = 600, width = 15, height = 12, units = "cm")
+ggsave(file="tetrahymena_mother_culture_growth_rate_both_lines.eps", device="eps", dpi = 1200, width = 15, height = 10, units = "cm")
+library(Cairo)
+ggsave(file="tetrahymena_growth_rate_during_adaptation_no_markers.svg", device="svg", dpi = 1200, width = 10, height = 10, units = "cm")
+
+
+
 # The cell count is not very reliable if the density is below a certain value
 # Say that we need at least 3 cells in 6 squares of the grid
 # As each square is 0.1 uL, this is a density of 3/0.6*1000=5000 cells/ml
 # populationGrowthData <- subset(populationGrowthData, current_count >= 5000 & previous_count >= 5000)
 
+if (focusOnStableCultures)
+{useFormula <- 'y~1'} else {useFormula <- 'y~x'}
+
 plotG1 <- ggplot(populationGrowthData, aes(x=date_number, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt)) +
   geom_point(size=2) + 
-  geom_smooth(method=lm, formula='y~x', se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), linetype=factor(density))) + 
+  geom_smooth(method=lm, formula=useFormula, se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), linetype=factor(density))) + 
   theme_classic(base_size = 22) +
   scale_y_continuous(name="generations per day", limits=c(0,5.7), breaks=seq(0,5, by=1)) +
   scale_x_continuous(name="adaptation time (days)") + 
@@ -110,10 +164,10 @@ plotG1
 plotG1 <- ggplot(populationGrowthData, aes(x=date_number, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt, fill=tAdapt)) +
   # geom_point(size=2, alpha=0.4, colour="black") +
   # geom_jitter(size=2, alpha=0.4, colour="black", position = position_jitter(height = 0, width = .4)) +
-  geom_smooth(method=lm, formula='y~x', se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)))) + 
+  geom_smooth(method=lm, formula=useFormula, se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)))) + 
   theme_classic(base_size = 22) +
   scale_y_continuous(name="generations per day", limits=c(0,5.7), breaks=seq(0,5, by=1)) +
-  scale_x_continuous(name="adaptation time (days)") + 
+  scale_x_continuous(name="adaptation time (days)", limits=c(0,max(populationGrowthData$date_number))) + 
   theme(legend.position = "none") + 
   scale_color_manual(values=plotColours) + # this is the zissou1 palette
   scale_shape_manual(values=markerShapes) + # shapes for the markers
@@ -127,10 +181,12 @@ ggsave(file="tetrahymena_growth_rate_during_adaptation_no_markers.eps", device="
 library(Cairo)
 ggsave(file="tetrahymena_growth_rate_during_adaptation_no_markers.pdf", device="pdf", dpi = 1200, width = 15, height = 10, units = "cm")
 
+
+
 # find the end of the subculture
 endOfSubcultures <- max(populationGrowthData$date_number)
 nLastDays <- 25
-# and isolate the last 15 days (to exclude the transient when everything happens)
+# and isolate the last N days (to exclude the transient when everything happens)
 populationGrowthDataStableSubcultures <- subset(populationGrowthData, date_number > endOfSubcultures - nLastDays)
 populationGrowthDataStableSubcultures$date_number_from_subculture <- populationGrowthDataStableSubcultures$date_number -54
 
@@ -139,14 +195,22 @@ populationGrowthDataStableSubcultures$date_number_from_subculture <- populationG
 populationGrowthDataStableSubcultures$density_as_factor = factor(paste(populationGrowthDataStableSubcultures$density, "%", sep=""), levels=paste(as.character(sort(as.numeric(unique(populationGrowthDataStableSubcultures$density)))), "%", sep=""))
 populationGrowthDataStableSubcultures$tAdapt_as_factor = factor(paste(populationGrowthDataStableSubcultures$tAdapt, "°C", sep=""), levels=paste(as.character(sort(unique(populationGrowthDataStableSubcultures$tAdapt))), "°C", sep=""))
 
+stringPreferredModel <- c("constant", "with_slope")
 growthRateStableSubculturesFit <- as.data.frame(populationGrowthDataStableSubcultures 
-                               %>% group_by(tAdapt_and_density, tAdapt, density) 
+                               %>% dplyr::group_by(tAdapt_and_density, tAdapt, density) 
                                %>% do(
                                  popfitIntercept = (coefficients(summary(lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .)))[1,1]), 
                                  popfitSlope = (coefficients(summary(lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .)))[2,1]),
                                  popfitInterceptSe = (coefficients(summary(lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .)))[1,2]), 
-                                 popfitSlopeSe = (coefficients(summary(lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .)))[2,2]))
+                                 popfitSlopeSe = (coefficients(summary(lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .)))[2,2]),
+                                 popfitConstant = (coefficients(summary(lm(growth_rate_gen_per_day ~ 1, data = .)))[1,1]),
+                                 bic_df_flat = BIC(lm(growth_rate_gen_per_day ~ 1, data = .), lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .))$df[1],
+                                 bic_df_slope = BIC(lm(growth_rate_gen_per_day ~ 1, data = .), lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .))$df[2],
+                                 bic_val_flat = BIC(lm(growth_rate_gen_per_day ~ 1, data = .), lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .))$BIC[1],
+                                 bic_val_slope = BIC(lm(growth_rate_gen_per_day ~ 1, data = .), lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .))$BIC[2],
+                                 preferredModel = which.min(BIC(lm(growth_rate_gen_per_day ~ 1, data = .), lm(growth_rate_gen_per_day ~ date_number_from_subculture, data = .))$BIC))
 )
+growthRateStableSubculturesFit$preferredModelString <- stringPreferredModel[as.numeric(growthRateStableSubculturesFit$preferredModel)]
 sapply(growthRateStableSubculturesFit, typeof) # sapply(growthRateStableSubculturesFit, class)
 growthRateStableSubculturesFit$popfitIntercept <- as.double(growthRateStableSubculturesFit$popfitIntercept)
 growthRateStableSubculturesFit$popfitSlope <- as.double(growthRateStableSubculturesFit$popfitSlope)
@@ -159,14 +223,150 @@ popGrowthRateFitStableSubculture <- cbind(growthRateStableSubculturesFit$tAdapt_
 popGrowthRateFitStableSubculture
 write.table(popGrowthRateFitStableSubculture, "changes_of_pop_growth_rate_late_in_adaptation.csv", append = FALSE, sep = ",", row.names = FALSE)
 
+if (focusOnStableCultures)
+{useFormula <- 'y~1'} else {useFormula <- 'y~x'}
 
 plotG1err <- ggplot(populationGrowthDataStableSubcultures, aes(x=date_number - endOfSubcultures+nLastDays, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt, fill=tAdapt)) +
   geom_point(size=2, alpha=0.4, colour="black") +
   # geom_jitter(size=2, alpha=0.4, colour="black", position = position_jitter(height = 0, width = .4)) +
-  geom_smooth(method=lm, formula='y~x', se=TRUE, fullrange=FALSE, aes(fill=factor(tAdapt), size=factor(as.numeric(density)))) + 
+  geom_smooth(method=lm, formula=useFormula, se=TRUE, fullrange=FALSE, aes(fill=factor(tAdapt), size=factor(as.numeric(density)))) + 
   theme_classic(base_size = 14) +
   scale_y_continuous(name="generations per day", limits=c(0,5), breaks=seq(0,5, by=2)) +
   scale_x_continuous(name="adaptation time (days)", limits=c(0,nLastDays), breaks=seq(0,nLastDays, by=10)) + 
+  theme(legend.position = "none") + 
+  scale_color_manual(values=plotColours) + # this is the zissou1 palette
+  scale_shape_manual(values=markerShapes) + # shapes for the markers
+  scale_size_manual( values = c(0.8, 1.4, 2) ) +
+  # scale_alpha_continuous(range=c(0.5, 1)) + 
+  scale_fill_manual(values= plotColours) # this is the zissou1 palette
+
+
+plotG1err <- plotG1err + facet_grid(rows=vars(tAdapt_as_factor), cols=vars(density_as_factor))
+plotG1err
+
+ggsave(file="tetrahymena_growth_rate_during_adaptation_no_markers_err1.png", dpi = 600, width = 15, height = 12, units = "cm")
+ggsave(file="tetrahymena_growth_rate_during_adaptation_no_markers_err1.eps", device="eps", dpi = 1200, width = 15, height = 12, units = "cm")
+library(Cairo)
+ggsave(file="tetrahymena_growth_rate_during_adaptation_no_markers_err1.pdf", device="pdf", dpi = 1200, width = 15, height = 12, units = "cm")
+
+
+# Repeat the same analysis in a different way to identify periods when
+# per capita growth rate was constant vs. period when it was changing
+
+
+# initialize a copy of populationGrowthData in which 
+# I only record stable cultures. Pay attention to many variables
+# with similar names
+populationGrowthDataStable <- populationGrowthData
+# # fit linear regression or constant curves (one for each subplot)
+for (ddd in unique(populationGrowthData$density))
+{
+   for (ttt in unique(populationGrowthData$tAdapt))
+   {
+     for (ismmm in unique(populationGrowthData$isMotherCulture))
+     {
+       populationGrowthData1 <- subset(populationGrowthData, tAdapt == ttt & density == ddd & isMotherCulture == ismmm)
+       if (nrow(populationGrowthData1) > 0)
+       {
+         print(paste(ddd, ttt, ismmm, sep=" "))
+         
+         # Now, for each series look at the period when the population growth-rate
+         # becomes stable
+         endOfThisSubculture <- max(populationGrowthData1$date_number)
+         startOfThisSubculture <- min(populationGrowthData1$date_number)
+         startOfTheStablePeriod <- startOfThisSubculture
+         while (startOfTheStablePeriod < endOfThisSubculture)
+         {
+           currData <- subset(populationGrowthData1, date_number >= startOfTheStablePeriod)
+           bic_on_models <- BIC(lm(growth_rate_gen_per_day ~ 1, data = currData), lm(growth_rate_gen_per_day ~ date_number, data = currData))$BIC
+           preferredModel <- which.min(bic_on_models)
+           if (preferredModel == 1)
+           {
+             print(paste("culture is stable from day", startOfTheStablePeriod))
+             populationGrowthDataStable <- subset(populationGrowthDataStable, tAdapt != ttt | density != ddd | isMotherCulture != ismmm | date_number >= startOfTheStablePeriod)
+             break
+           }
+           currData <- subset(currData, date_number > startOfTheStablePeriod)
+           startOfTheStablePeriod <- min(currData$date_number)
+         }
+         
+       }
+     }
+   }
+}
+
+if (focusOnStableCultures)
+{useFormula <- 'y~1'} else {useFormula <- 'y~x'}
+
+# with markers
+plotG1 <- ggplot(populationGrowthData, aes(x=date_number, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt, fill=factor(tAdapt))) +
+  geom_point(size=2, alpha=0.4, colour="black") +
+  # geom_jitter(size=2, alpha=0.4, colour="black", position = position_jitter(height = 0, width = .4)) +
+  # geom_smooth(method=lm, formula='y~x', se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)))) + 
+  geom_smooth(data=populationGrowthDataStable, method=lm, formula=useFormula, se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)))) + 
+  theme_classic(base_size = 22) +
+  scale_y_continuous(name="generations per day", limits=c(0,5.7), breaks=seq(0,5, by=1)) +
+  scale_x_continuous(name="adaptation time (days)") + 
+  theme(legend.position = "none") + 
+  scale_color_manual(values=plotColours) + # this is the zissou1 palette
+  scale_shape_manual(values=markerShapes) + # shapes for the markers
+  scale_size_manual( values = c(0.8, 1.4, 2) ) +
+  # scale_alpha_continuous(range=c(0.5, 1)) + 
+  scale_fill_manual(values= plotColours)# this is the zissou1 palette
+plotG1
+# without markers
+plotG1 <- ggplot(populationGrowthData, aes(x=date_number, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt, fill=factor(tAdapt))) +
+  # geom_point(size=2, alpha=0.4, colour="black") +
+  # geom_jitter(size=2, alpha=0.4, colour="black", position = position_jitter(height = 0, width = .4)) +
+  # geom_smooth(method=lm, formula='y~x', se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)))) + 
+  geom_smooth(data=populationGrowthDataStable, method=lm, formula=useFormula, se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)))) + 
+  # geom_smooth(data=populationGrowthDataStable, method=lm, formula=useFormula, se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)), linetype=factor(density))) + 
+  theme_classic(base_size = 22) +
+  scale_y_continuous(name="generations per day", limits=c(0,5.7), breaks=seq(0,5, by=1)) +
+  scale_x_continuous(name="adaptation time (days)") + 
+  theme(legend.position = "none") + 
+  scale_color_manual(values=plotColours) + # this is the zissou1 palette
+  scale_shape_manual(values=markerShapes) + # shapes for the markers
+  scale_size_manual( values = c(0.8, 1.4, 2) ) +
+  # scale_alpha_continuous(range=c(0.5, 1)) + 
+  scale_fill_manual(values= plotColours)# this is the zissou1 palette
+plotG1
+
+ggsave(file="tetrahymena_growth_rate_during_adaptation.png", dpi = 600, width = 15, height = 10, units = "cm")
+ggsave(file="tetrahymena_growth_rate_during_adaptation.eps", device="eps", dpi = 1200, width = 15, height = 10, units = "cm")
+library(Cairo)
+ggsave(file="tetrahymena_growth_rate_during_adaptation.pdf", device="pdf", dpi = 1200, width = 15, height = 10, units = "cm")
+
+
+# Isolate the data for the 9 experimental cultures after splitting the mother culture
+if (focusOnStableCultures == TRUE)
+{ 
+  experimentalCultures <- subset(populationGrowthDataStable, isMotherCulture == 0)
+  # I also save the original data for experimental cultures that are not stable
+  experimentalCulturesAll <- subset(populationGrowthData, isMotherCulture == 0)
+} else {
+  experimentalCultures <- subset(populationGrowthData, isMotherCulture == 0)
+  experimentalCulturesAll <- experimentalCultures # in this case there is no difference between "all" and "stable"
+}
+
+
+
+# adding new columns with values as factors to simplify facet titles,
+# sorting of plots in a figure, etc.
+experimentalCultures$density_as_factor = factor(paste(experimentalCultures$density, "%", sep=""), levels=paste(as.character(sort(as.numeric(unique(experimentalCultures$density)))), "%", sep=""))
+experimentalCultures$tAdapt_as_factor = factor(paste(experimentalCultures$tAdapt, "°C", sep=""), levels=paste(as.character(sort(unique(experimentalCultures$tAdapt))), "°C", sep=""))
+experimentalCulturesAll$density_as_factor = factor(paste(experimentalCulturesAll$density, "%", sep=""), levels=paste(as.character(sort(as.numeric(unique(experimentalCulturesAll$density)))), "%", sep=""))
+experimentalCulturesAll$tAdapt_as_factor = factor(paste(experimentalCulturesAll$tAdapt, "°C", sep=""), levels=paste(as.character(sort(unique(experimentalCulturesAll$tAdapt))), "°C", sep=""))
+
+
+# plot growth rate in each subculture, excluding mother culture
+plotG1err <- ggplot(experimentalCulturesAll, aes(x=date_number - min(date_number), y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt, fill=tAdapt)) +
+  geom_point(size=2, alpha=0.4, colour="black") +
+  # geom_jitter(size=2, alpha=0.4, colour="black", position = position_jitter(height = 0, width = .4)) +
+  geom_smooth(data=experimentalCultures, method=lm, formula=useFormula, se=TRUE, fullrange=FALSE, aes(fill=factor(tAdapt), size=factor(as.numeric(density)))) + 
+  theme_classic(base_size = 14) +
+  scale_y_continuous(name="generations per day", limits=c(0,5), breaks=seq(0,5, by=2)) +
+  scale_x_continuous(name="adaptation time (days)", limits=c(-3,max(experimentalCultures$date_number) - min(experimentalCultures$date_number) + 3), breaks=seq(0,max(experimentalCultures$date_number) - min(experimentalCultures$date_number) +3, by=10)) + 
   theme(legend.position = "none") + 
   scale_color_manual(values=plotColours) + # this is the zissou1 palette
   scale_shape_manual(values=markerShapes) + # shapes for the markers
@@ -185,37 +385,7 @@ ggsave(file="tetrahymena_growth_rate_during_adaptation_no_markers_err.pdf", devi
 
 
 
-plotG1 <- ggplot(populationGrowthData, aes(x=date_number, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt, fill=tAdapt)) +
-  geom_point(size=2, alpha=0.4, colour="black") +
-  # geom_jitter(size=2, alpha=0.4, colour="black", position = position_jitter(height = 0, width = .4)) +
-  geom_smooth(method=lm, formula='y~x', se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)))) + 
-  theme_classic(base_size = 22) +
-  scale_y_continuous(name="generations per day", limits=c(0,5.7), breaks=seq(0,5, by=1)) +
-  scale_x_continuous(name="adaptation time (days)") + 
-  theme(legend.position = "none") + 
-  scale_color_manual(values=plotColours) + # this is the zissou1 palette
-  scale_shape_manual(values=markerShapes) + # shapes for the markers
-  scale_size_manual( values = c(0.8, 1.4, 2) ) +
-  # scale_alpha_continuous(range=c(0.5, 1)) + 
-  scale_fill_manual(values= plotColours)# this is the zissou1 palette
-plotG1
 
-ggsave(file="tetrahymena_growth_rate_during_adaptation.png", dpi = 600, width = 15, height = 10, units = "cm")
-ggsave(file="tetrahymena_growth_rate_during_adaptation.eps", device="eps", dpi = 1200, width = 15, height = 10, units = "cm")
-library(Cairo)
-ggsave(file="tetrahymena_growth_rate_during_adaptation.pdf", device="pdf", dpi = 1200, width = 15, height = 10, units = "cm")
-
-
-
-
-
-
-
-
-
-# Isolate the data for the 9 experimental cultures after splitting the mother culture
-
-experimentalCultures <- subset(populationGrowthData, isMotherCulture == 0)
 
 
 
@@ -384,11 +554,11 @@ experimentalCultures$tAdapt_as_factor = factor(paste(experimentalCultures$tAdapt
 
 allFittedCurves <- data.frame(current_count=double(), .fitted=double(), tAdapt=character(), density=character())
 # fit logistic growth curve (one for each subplot)
-for (ddd in unique(experimentalCultures$density))
+for (ddd in unique(experimentalCulturesAll$density))
 {
-  for (ttt in unique(experimentalCultures$tAdapt))
+  for (ttt in unique(experimentalCulturesAll$tAdapt))
   {
-    experimentalCultures1 <- subset(experimentalCultures, tAdapt == ttt & density == ddd)
+    experimentalCultures1 <- subset(experimentalCulturesAll, tAdapt == ttt & density == ddd)
     # for 15 degrees and 200% medium, the fit fails because of a high value of 
     # generations per day when the current_count is very low. However, if the final count is low
     # the estimation of population density is less accurate (fewer cells under the microscope
@@ -404,11 +574,13 @@ for (ddd in unique(experimentalCultures$density))
     # tempData$growth_rate_gen_per_day[1] <- 0 # add an extra data point with no growth
     # tempData$current_count[1] <- 2000000
     # tempData <- rbind(experimentalCultures1, tempData)
+    
     fit1 <- nls(data=experimentalCultures1[c('growth_rate_gen_per_day', 'current_count')], formula=growth_rate_gen_per_day ~ a * (1 - current_count/b), start=list(a=2, b=1000000))
     fit2 <- nls(data=experimentalCultures1[c('growth_rate_gen_per_day', 'current_count')], formula=growth_rate_gen_per_day ~ a , start=list(a=2))
     
     aic_on_models <- AIC(fit1,fit2)
     bestModel <- which.min(aic_on_models$AIC)
+
     if (bestModel == 1)
     {
       fit <- fit1
@@ -440,7 +612,7 @@ for (ddd in unique(experimentalCultures$density))
 
 # Look at the effect of final density on the growth rate, to check for 
 # deviations from the exponential growth
-plotDensityEffects <- ggplot(experimentalCultures, aes(x=log10(current_count), y=growth_rate_gen_per_day, shape=density_as_factor, color=tAdapt_as_factor, fill=density_as_factor)) +
+plotDensityEffects <- ggplot(experimentalCulturesAll, aes(x=log10(current_count), y=growth_rate_gen_per_day, shape=density_as_factor, color=tAdapt_as_factor, fill=density_as_factor)) +
   geom_point(size=2, alpha=1, colour="black") +
   # geom_line(aes(current_count, .fitted), data=preds, col="blue") +
   geom_line(aes(log10(current_count), .fitted, size=density_as_factor), data=allFittedCurves) +
@@ -476,10 +648,10 @@ ggsave(file="growth_vs_maximum_density.pdf", device=cairo_pdf, dpi = 1200, width
   # is not the same as the adaptation time. In other words, in the plot below I shouldn't
   # use date_number but the cumulative_time. 
   
-  experimentalCultures <- subset(populationGrowthData, isMotherCulture == 0)
+  experimentalCulturesAll <- subset(populationGrowthData, isMotherCulture == 0)
   
   
-  plotCumG <- ggplot(experimentalCultures, aes(x=cumulative_time, y=cumulative_generations, shape=factor(as.numeric(density)), color=tAdapt, fill=tAdapt)) +
+  plotCumG <- ggplot(experimentalCulturesAll, aes(x=cumulative_time, y=cumulative_generations, shape=factor(as.numeric(density)), color=tAdapt, fill=tAdapt)) +
     # geom_point(size=2, alpha=0.4, colour="black") +
     geom_smooth(method=lm, formula='y~x', se=FALSE, fullrange=TRUE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)))) + 
     geom_jitter(size=2, alpha=0.4, colour="black", position = position_jitter(height = 0, width = .4)) +
