@@ -31,6 +31,7 @@ fileName <- "~/Tetrahymena/population_growth_during_adaptation/growth_data_durin
 # The following file is produced by the script analysis_of_body_size_from_tracking_data.R
 fileNameBodySizeData <- "/Tetrahymena/body_size/estimated_body_size_change_during_adaptation.csv"
 
+
 # Decide whether to focus the analyses on stable cultures, i.e. when
 # per capita growth rate does not change over time
 focusOnStableCultures <- TRUE
@@ -98,7 +99,7 @@ ggplot(motherCulture, aes(x=date_number, y=growth_rate_gen_per_day, shape=line))
   geom_smooth(method=lm, formula=useFormula, se=TRUE, fullrange=TRUE, colour="black", aes(fill=factor(tAdapt))) + 
   theme_classic(base_size = 22) +
   scale_y_continuous(name="generations per day") +
-  scale_x_continuous(name="adaptation time (days)") + 
+  scale_x_continuous(name="time (days)") + 
   theme(legend.position = "none") + 
   scale_color_manual(values=c("#EBCC2A", "#3B9AB2", "#F21A00")) + # this is the zissou1 palette
   scale_fill_manual(values= c("#EBCC2A", "#3B9AB2", "#F21A00"))# this is the zissou1 palette
@@ -129,7 +130,7 @@ ggplot(motherCulture, aes(x=date_number, y=growth_rate_gen_per_day, shape=tAdapt
   geom_smooth(method=lm, formula=useFormula, se=TRUE, fullrange=TRUE, colour="black", aes(fill=factor(tAdapt))) + 
   theme_classic(base_size = 22) +
   scale_y_continuous(name="generations per day") +
-  scale_x_continuous(name="adaptation time (days)") + 
+  scale_x_continuous(name="time (days)") + 
   theme(legend.position = "none") + 
   scale_color_manual(values=c("#EBCC2A", "#3B9AB2", "#F21A00")) + # this is the zissou1 palette
   scale_fill_manual(values= c("#EBCC2A", "#3B9AB2", "#F21A00"))# this is the zissou1 palette
@@ -149,25 +150,25 @@ ggsave(file="tetrahymena_growth_rate_during_adaptation_no_markers.svg", device="
 if (focusOnStableCultures)
 {useFormula <- 'y~1'} else {useFormula <- 'y~x'}
 
-plotG1 <- ggplot(populationGrowthData, aes(x=date_number, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt)) +
+plotG1 <- ggplot(populationGrowthData, aes(x=date_number - 53, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt)) +
   geom_point(size=2) + 
   geom_smooth(method=lm, formula=useFormula, se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), linetype=factor(density))) + 
   theme_classic(base_size = 22) +
   scale_y_continuous(name="generations per day", limits=c(0,5.7), breaks=seq(0,5, by=1)) +
-  scale_x_continuous(name="adaptation time (days)") + 
+  scale_x_continuous(name="time (days)") + 
   theme(legend.position = "none") + 
   scale_color_manual(values=plotColours) + # this is the zissou1 palette
   scale_fill_manual(values= alpha(plotColours), 0.9)# this is the zissou1 palette
 plotG1
 
 
-plotG1 <- ggplot(populationGrowthData, aes(x=date_number, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt, fill=tAdapt)) +
+plotG1 <- ggplot(populationGrowthData, aes(x=date_number -53, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt, fill=tAdapt)) +
   # geom_point(size=2, alpha=0.4, colour="black") +
   # geom_jitter(size=2, alpha=0.4, colour="black", position = position_jitter(height = 0, width = .4)) +
   geom_smooth(method=lm, formula=useFormula, se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)))) + 
   theme_classic(base_size = 22) +
   scale_y_continuous(name="generations per day", limits=c(0,5.7), breaks=seq(0,5, by=1)) +
-  scale_x_continuous(name="adaptation time (days)", limits=c(0,max(populationGrowthData$date_number))) + 
+  scale_x_continuous(name="time (days)", limits=c(-55,max(populationGrowthData$date_number - 53))) + 
   theme(legend.position = "none") + 
   scale_color_manual(values=plotColours) + # this is the zissou1 palette
   scale_shape_manual(values=markerShapes) + # shapes for the markers
@@ -232,7 +233,7 @@ plotG1err <- ggplot(populationGrowthDataStableSubcultures, aes(x=date_number - e
   geom_smooth(method=lm, formula=useFormula, se=TRUE, fullrange=FALSE, aes(fill=factor(tAdapt), size=factor(as.numeric(density)))) + 
   theme_classic(base_size = 14) +
   scale_y_continuous(name="generations per day", limits=c(0,5), breaks=seq(0,5, by=2)) +
-  scale_x_continuous(name="adaptation time (days)", limits=c(0,nLastDays), breaks=seq(0,nLastDays, by=10)) + 
+  scale_x_continuous(name="time (days)", limits=c(0,nLastDays), breaks=seq(0,nLastDays, by=10)) + 
   theme(legend.position = "none") + 
   scale_color_manual(values=plotColours) + # this is the zissou1 palette
   scale_shape_manual(values=markerShapes) + # shapes for the markers
@@ -299,14 +300,15 @@ if (focusOnStableCultures)
 {useFormula <- 'y~1'} else {useFormula <- 'y~x'}
 
 # with markers
-plotG1 <- ggplot(populationGrowthData, aes(x=date_number, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt, fill=factor(tAdapt))) +
-  geom_point(size=2, alpha=0.4, colour="black") +
+plotG1 <- ggplot(populationGrowthData, aes(x=date_number - 53, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt, fill=factor(tAdapt))) +
+  geom_vline(xintercept=0, color="gray", linetype="dashed") +
+  geom_point(size=2, alpha=0.2, colour="black") +
   # geom_jitter(size=2, alpha=0.4, colour="black", position = position_jitter(height = 0, width = .4)) +
   # geom_smooth(method=lm, formula='y~x', se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)))) + 
   geom_smooth(data=populationGrowthDataStable, method=lm, formula=useFormula, se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)))) + 
   theme_classic(base_size = 22) +
   scale_y_continuous(name="generations per day", limits=c(0,5.7), breaks=seq(0,5, by=1)) +
-  scale_x_continuous(name="adaptation time (days)") + 
+  scale_x_continuous(name="time (days)") + 
   theme(legend.position = "none") + 
   scale_color_manual(values=plotColours) + # this is the zissou1 palette
   scale_shape_manual(values=markerShapes) + # shapes for the markers
@@ -316,8 +318,8 @@ plotG1 <- ggplot(populationGrowthData, aes(x=date_number, y=growth_rate_gen_per_
 plotG1
 
 # without markers
-plotG1 <- ggplot(populationGrowthData, aes(x=date_number, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt, fill=factor(tAdapt))) +
-  geom_vline(xintercept=54, color="gray", linetype="dashed") +
+plotG1 <- ggplot(populationGrowthData, aes(x=date_number -53, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt, fill=factor(tAdapt))) +
+  geom_vline(xintercept=0, color="gray", linetype="dashed") +
   # geom_point(size=2, alpha=0.4, colour="black") +
   # geom_jitter(size=2, alpha=0.4, colour="black", position = position_jitter(height = 0, width = .4)) +
   # geom_smooth(method=lm, formula='y~x', se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)))) + 
@@ -325,7 +327,7 @@ plotG1 <- ggplot(populationGrowthData, aes(x=date_number, y=growth_rate_gen_per_
   # geom_smooth(data=populationGrowthDataStable, method=lm, formula=useFormula, se=FALSE, fullrange=FALSE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)), linetype=factor(density))) + 
   theme_classic(base_size = 22) +
   scale_y_continuous(name="generations per day", limits=c(0,5.7), breaks=seq(0,5, by=1)) +
-  scale_x_continuous(name="adaptation time (days)") + 
+  scale_x_continuous(name="time (days)") + 
   theme(legend.position = "none") + 
   scale_color_manual(values=plotColours) + # this is the zissou1 palette
   scale_shape_manual(values=markerShapes) + # shapes for the markers
@@ -361,14 +363,14 @@ experimentalCulturesAll$density_as_factor = factor(paste(experimentalCulturesAll
 experimentalCulturesAll$tAdapt_as_factor = factor(paste(experimentalCulturesAll$tAdapt, "°C", sep=""), levels=paste(as.character(sort(unique(experimentalCulturesAll$tAdapt))), "°C", sep=""))
 
 
-# plot growth rate in each subculture, excluding mother culture
-plotG1err <- ggplot(experimentalCulturesAll, aes(x=date_number - min(date_number), y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt, fill=tAdapt)) +
+# plot growth rate in each subculture, excluding mother culture (53 is the time of subculture)
+plotG1err <- ggplot(experimentalCulturesAll, aes(x=date_number - 53, y=growth_rate_gen_per_day, shape=factor(as.numeric(density)), color=tAdapt, fill=tAdapt)) +
   geom_point(size=2, alpha=0.4, colour="black") +
   # geom_jitter(size=2, alpha=0.4, colour="black", position = position_jitter(height = 0, width = .4)) +
   geom_smooth(data=experimentalCultures, method=lm, formula=useFormula, se=TRUE, fullrange=FALSE, aes(fill=factor(tAdapt), size=factor(as.numeric(density)))) + 
   theme_classic(base_size = 14) +
   scale_y_continuous(name="generations per day", limits=c(0,5), breaks=seq(0,5, by=2)) +
-  scale_x_continuous(name="adaptation time (days)", limits=c(-3,max(experimentalCultures$date_number) - min(experimentalCultures$date_number) + 3), breaks=seq(0,max(experimentalCultures$date_number) - min(experimentalCultures$date_number) +3, by=10)) + 
+  scale_x_continuous(name="time (days)", limits=c(-3,max(experimentalCultures$date_number) - 53 + 3), breaks=seq(0,max(experimentalCultures$date_number) - 53 +3, by=10)) + 
   theme(legend.position = "none") + 
   scale_color_manual(values=plotColours) + # this is the zissou1 palette
   scale_shape_manual(values=markerShapes) + # shapes for the markers
@@ -403,7 +405,7 @@ plotG2 <- ggplot(experimentalCultures, aes(x=factor(density, levels=unique(as.nu
   theme_classic(base_size = 22) +
   theme(legend.position = "none") + 
   scale_y_continuous(name="generations per day", limits=c(0,5.7), breaks=seq(0,5, by=1)) +
-  scale_x_discrete(name="Adaptation conditions", labels=c("50%", "100%", "200%")) +
+  scale_x_discrete(name="medium concentration", labels=c("50%", "100%", "200%")) +
   scale_fill_manual(values= alpha(c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")), 0.9) + # this is the zissou1 palette
   scale_color_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) # this is the zissou1 palette
 plotG2
@@ -431,7 +433,7 @@ plotG2bis <- ggplot(d2, aes(x=factor(density, levels=sort(unique(as.numeric(dens
   theme_classic(base_size = 22) +
   theme(legend.position = "none") + 
   scale_y_continuous(name="generations per day", limits=c(0,5.7), breaks=seq(0,5, by=1)) +
-  scale_x_discrete(name="Adaptation conditions", labels=c("50%", "100%", "200%")) +
+  scale_x_discrete(name="medium concentration", labels=c("50%", "100%", "200%")) +
   scale_fill_manual(values= alpha(c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")), 0.9) + # this is the zissou1 palette
   scale_color_manual(values=c("#000000", "#000000", "#000000", "#FF00FF")) # this is the zissou1 palette
 plotG2bis
@@ -658,8 +660,8 @@ ggsave(file="growth_vs_maximum_density.pdf", device=cairo_pdf, dpi = 1200, width
     geom_smooth(method=lm, formula='y~x', se=FALSE, fullrange=TRUE, aes(fill=factor(tAdapt_and_density), size=factor(as.numeric(density)))) + 
     geom_jitter(size=2, alpha=0.4, colour="black", position = position_jitter(height = 0, width = .4)) +
     theme_classic(base_size = 22) +
-    scale_y_continuous(name=expression(paste("Num. generations")), limits=c(0,75)) +
-    scale_x_continuous(name="adaptation time (days)", limits=c(-5, 21), breaks=seq(0, 21, by=7)) +
+    scale_y_continuous(name=expression(paste("num. generations")), limits=c(0,75)) +
+    scale_x_continuous(name="time (days)", limits=c(-5, 21), breaks=seq(0, 21, by=7)) +
     coord_cartesian(xlim=c(-5,25)) + 
     theme(legend.position = "none") + 
     scale_color_manual(values=plotColours) + # this is the zissou1 palette
