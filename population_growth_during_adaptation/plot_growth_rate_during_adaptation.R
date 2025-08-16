@@ -369,7 +369,7 @@ plotG1err <- ggplot(experimentalCulturesAll, aes(x=date_number - 53, y=growth_ra
   # geom_jitter(size=2, alpha=0.4, colour="black", position = position_jitter(height = 0, width = .4)) +
   geom_smooth(data=experimentalCultures, method=lm, formula=useFormula, se=TRUE, fullrange=FALSE, aes(fill=factor(tAdapt), size=factor(as.numeric(density)))) + 
   theme_classic(base_size = 14) +
-  scale_y_continuous(name="generations per day", limits=c(0,5), breaks=seq(0,5, by=2)) +
+  scale_y_continuous(name=expression(paste(italic("per capita"), " growth (generations per day)")), limits=c(0,5), breaks=seq(0,5, by=2)) +
   scale_x_continuous(name="time (days)", limits=c(-3,max(experimentalCultures$date_number) - 53 + 3), breaks=seq(0,max(experimentalCultures$date_number) - 53 +3, by=10)) + 
   theme(legend.position = "none") + 
   scale_color_manual(values=plotColours) + # this is the zissou1 palette
