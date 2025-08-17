@@ -186,8 +186,8 @@ ggplot(d, aes(x=factor(mediumConcentration), y=medianBEllipse, col=factor(tAdapt
   geom_boxplot(width=0.6, outlier.shape = NA, colour="black", aes(fill = factor(tAdaptation))) + # add a box plot
   theme_classic(base_size = 22) +
   theme(legend.position = "none") + 
-  scale_y_continuous(name=expression(paste("Major axis length"," (",  mu, "m)")), lim=c(0,100)) + 
-  scale_x_discrete(name="Adaptation conditions", labels=c("50%", "100%", "200%")) +
+  scale_y_continuous(name=expression(paste("major axis length"," (",  mu, "m)")), lim=c(0,100)) + 
+  scale_x_discrete(name="medium concentration", labels=c("50%", "100%", "200%")) +
   scale_fill_manual(values= alpha(c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")), 0.9) + # this is the zissou1 palette
   scale_color_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) # this is the zissou1 palette
 if (saveFigures){
@@ -203,8 +203,8 @@ ggplot(d, aes(x=factor(mediumConcentration, levels=sort(unique(as.numeric(medium
   geom_boxplot(width=0.6, outlier.shape = NA, colour="black", aes(fill = factor(tAdaptation))) + # add a box plot
   theme_classic(base_size = 22) +
   theme(legend.position = "none") + 
-  scale_y_continuous(name=expression(paste("Minor axis length"," (",  mu, "m)")), lim=c(0,50)) +
-  scale_x_discrete(name="Adaptation conditions", labels=c("50%", "100%", "200%")) +
+  scale_y_continuous(name=expression(paste("minor axis length"," (",  mu, "m)")), lim=c(0,50)) +
+  scale_x_discrete(name="medium concentration", labels=c("50%", "100%", "200%")) +
   scale_fill_manual(values= alpha(c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")), 0.9) + # this is the zissou1 palette
   scale_color_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) # this is the zissou1 palette
 if (saveFigures){
@@ -222,8 +222,8 @@ ggplot(d, aes(x=factor(mediumConcentration, levels=sort(unique(as.numeric(medium
   geom_boxplot(width=0.6, outlier.shape = NA, colour="black", aes(fill = factor(tAdaptation))) + # add a box plot
   theme_classic(base_size = 22) +
   theme(legend.position = "none") + 
-  scale_y_continuous(name=expression(paste("Aspect ratio")), lim=c(0,4)) +
-  scale_x_discrete(name="Adaptation conditions", labels=c("50%", "100%", "200%")) +
+  scale_y_continuous(name=expression(paste("aspect ratio")), lim=c(0,4)) +
+  scale_x_discrete(name="medium concentration", labels=c("50%", "100%", "200%")) +
   scale_fill_manual(values= alpha(c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")), 0.9) + # this is the zissou1 palette
   scale_color_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) # this is the zissou1 palette
 if (saveFigures){
@@ -240,7 +240,7 @@ ggplot(d, aes(x=factor(mediumConcentration, levels=sort(unique(as.numeric(medium
   theme_classic(base_size = 22) +
   theme(legend.position = "none") + 
   scale_y_continuous(name=expression(paste('estimated volume '," ",  mu, 'm'^3))) +
-  scale_x_discrete(name="Adaptation conditions", labels=c("50%", "100%", "200%")) +
+  scale_x_discrete(name="medium concentration", labels=c("50%", "100%", "200%")) +
   scale_fill_manual(values= alpha(c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")), 0.9) + # this is the zissou1 palette
   scale_color_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) # this is the zissou1 palette
 if (saveFigures){
@@ -255,7 +255,7 @@ ggplot(d, aes(x=factor(mediumConcentration, levels=sort(unique(as.numeric(medium
   theme_classic(base_size = 22) +
   theme(legend.position = "none") + 
   scale_y_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3))) +
-  scale_x_discrete(name="Adaptation conditions", labels=c("50%", "100%", "200%")) +
+  scale_x_discrete(name="medium concentration", labels=c("50%", "100%", "200%")) +
   scale_fill_manual(values= alpha(c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")), 0.9) + # this is the zissou1 palette
   scale_color_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")) # this is the zissou1 palette
 if (saveFigures){
@@ -291,7 +291,7 @@ plotG2bis <- ggplot(d2, aes(x=factor(mediumConcentration, levels=sort(unique(as.
   theme_classic(base_size = 22) +
   theme(legend.position = "none") + 
   scale_y_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3))) +
-  scale_x_discrete(name="Adaptation conditions", labels=c("50%", "100%", "200%")) +
+  scale_x_discrete(name="medium concentration", labels=c("50%", "100%", "200%")) +
   scale_fill_manual(values= alpha(c("#3B9AB2", "#EBCC2A", "#F21A00", "#FF00FF")), 0.9) + # this is the zissou1 palette
   scale_color_manual(values=c("#000000", "#000000", "#000000", "#FF00FF")) # this is the zissou1 palette
 plotG2bis
@@ -410,4 +410,6 @@ emmeans(m, ~ tAdaptation * mediumConcentration)
 
 # cell shrinkage at high nutrients
 (4.30 - 4.23) / 4.30 *100
+
+
 
