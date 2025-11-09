@@ -116,7 +116,8 @@ if (saveFigures){
 dMerged$logMR <- log10(dMerged$r_tref.x)
 dMerged$logMR_0025 <- log10(dMerged$r_tref_0025.x)
 dMerged$logMR_0975 <- log10(dMerged$r_tref_0975.x)
-tentativeSlopeMRvsVolume <- lm(formula=logMR ~ estimatedlogVolume, data = dMerged)
+dMerged$logMR_sd <- log10(dMerged$sd_r_tref.x)
+tentativeSlopeMRvsVolume <- lm(formula=logMR ~ estimatedlogVolume, data = dMerged, weight=1/logMR_sd^2)
 print(tentativeSlopeMRvsVolume)
 # if logMR = estimatedLogVolume x 1.234 -5.371
 # then the metabolic rate would increase more than the volume alone
@@ -159,7 +160,8 @@ if (saveFigures){
 dMerged$logSpeed <- log10(dMerged$r_tref.y)
 dMerged$logSpeed_0025 <- log10(dMerged$r_tref_0025.y)
 dMerged$logSpeed_0975 <- log10(dMerged$r_tref_0975.y)
-tentativeSlopeSpeedvsVolume <- lm(formula=logSpeed ~ estimatedlogVolume, data = dMerged)
+dMerged$logSpeed_sd <- log10(dMerged$sd_r_tref.y)
+tentativeSlopeSpeedvsVolume <- lm(formula=logSpeed ~ estimatedlogVolume, data = dMerged, weight=1/logSpeed_sd^2)
 print(tentativeSlopeSpeedvsVolume)
 # if logSpeed = estimatedLogVolume x 0.5063 + 0.6121
 # then the speed would increase more than the volume tothe power 1/3
