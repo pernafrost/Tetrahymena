@@ -2,6 +2,9 @@ rm(list=ls()) # clean memory
 if(!is.null(dev.list())) dev.off()
 
 
+
+
+
 #################################################################################################################
 # Function to calculate the mean and the standard deviation
 # for each group (useful to combine lines together)
@@ -30,7 +33,7 @@ data_summary <- function(data, varname, groupnames){
 # Consider changing this to true, also consider
 # removing the filter on size and speed
 # check why allFitResults$e_from_fit and allFitResults$e are different
-saveFigures <- TRUE
+saveFigures <- FALSE
 combineLinesTogether <- TRUE # whether to analyse all experimental lines together or each independently
 includeBootstrap <- TRUE # whether to run a bootstrap on the fitted thermal response curve
 includeStartingData <- TRUE # In some conditions, we did not measure the speed of 
@@ -168,6 +171,12 @@ allExperimentResults$oneOverkTrel <- oneOverkT293 - allExperimentResults$oneOver
 
 names(allExperimentResults)
 
+
+
+# selectTopXPercentFastest <- 20
+# for (selectTopXPercentFastest in 2:100)
+for (selectTopXPercentFastest in 20)
+{
 # coefficients of fitted log(speed) vs. log(cell volume)
 allFittedLogSpeedVsLogVolume <- list()
 
@@ -262,12 +271,12 @@ for (aaa in 1:length(allTAdaptation))
             for (uuu in 1:length(allIncubationDays))
             {
               currentConditionThisTemperatureAndLineAndDay <- subset(currentCondition, tTest == allTTest[ttt] & line == allLinesInsideLoop[iii] & incubationDurationInDays == allIncubationDays[uuu])
-              speedQuantile <- quantile(currentConditionThisTemperatureAndLineAndDay$medianSpeed, probs = 0.80, na.rm = TRUE)
+              speedQuantile <- quantile(currentConditionThisTemperatureAndLineAndDay$medianSpeed, probs = (100 - selectTopXPercentFastest)/100, na.rm = TRUE)
               currentCondition$speedQuantile[currentCondition$tTest == allTTest[ttt] & currentCondition$line==allLinesInsideLoop[iii] & currentCondition$incubationDurationInDays == allIncubationDays[uuu]] <- speedQuantile
             }
           }
           currentConditionThisTemperatureAndLine <- subset(currentCondition, tTest == allTTest[ttt] & line == allLinesInsideLoop[iii])
-          speedQuantile <- quantile(currentConditionThisTemperatureAndLine$medianSpeed, probs = 0.80, na.rm = TRUE)
+          speedQuantile <- quantile(currentConditionThisTemperatureAndLine$medianSpeed, probs = (100 - selectTopXPercentFastest)/100, na.rm = TRUE)
           currentCondition$speedQuantile[currentCondition$tTest == allTTest[ttt] & currentCondition$line==allLinesInsideLoop[iii]] <- speedQuantile
         }
       }
@@ -283,7 +292,7 @@ for (aaa in 1:length(allTAdaptation))
           for (ttt in 1:length(allTTest))
           {
             currentConditionStartingDataThisTemperatureAndLine <- subset(currentConditionStartingData, tTest == allTTest[ttt] & line == allLinesInsideLoop[iii])
-            speedQuantileStartingData <- quantile(currentConditionStartingDataThisTemperatureAndLine$medianSpeed, probs = 0.80, na.rm = TRUE)
+            speedQuantileStartingData <- quantile(currentConditionStartingDataThisTemperatureAndLine$medianSpeed, probs = (100 - selectTopXPercentFastest)/100, na.rm = TRUE)
             currentConditionStartingData$speedQuantile[currentConditionStartingData$tTest == allTTest[ttt] & currentConditionStartingData$line==allLinesInsideLoop[iii]] <- speedQuantileStartingData
           }
         }
@@ -379,8 +388,8 @@ for (aaa in 1:length(allTAdaptation))
           # scale_colour_manual(values=c("#3B9AB2", "#5DAABC", "#88BAAE", "#CAC656", "#E8C31E", "#E2B306", "#E86F00", "#F21A00")) +
           scale_color_manual(values=plotColours) + # this is the zissou1 palette
           scale_shape_manual(values=markerShapes) + # shapes for the markers
-          facet_grid(cols=vars(tTest_as_factor),drop=FALSE) +
-          labs(color="T test:")
+          facet_grid(cols=vars(tTest_as_factor),drop=FALSE) #+
+          # labs(color="T test:")
       } else {
         plotOverTime <- ggplot(currentConditionTopSpeedSummary, aes(x=incubationDurationInDays, y=medianSpeed)) + # , color=tTest_as_factor)) +
           # geom_hline(yintercept=currentConditionTopSpeedSummary$medianSpeed[currentConditionTopSpeedSummary$tTest_as_factor == allTAdaptation[aaa] & currentConditionTopSpeedSummary$incubationDurationInDays == 0], colour=plotColours[aaa]) +
@@ -400,8 +409,8 @@ for (aaa in 1:length(allTAdaptation))
           # scale_colour_manual(values=c("#3B9AB2", "#5DAABC", "#88BAAE", "#CAC656", "#E8C31E", "#E2B306", "#E86F00", "#F21A00")) +
           scale_color_manual(values=plotColours) + # this is the zissou1 palette
           scale_shape_manual(values=markerShapes) + # shapes for the markers
-          facet_grid(cols=vars(tTest_as_factor),drop=FALSE) +
-          labs(color="T test:")
+          facet_grid(cols=vars(tTest_as_factor),drop=FALSE) #+
+          # labs(color="T test:")
       }
       plotOverTime
       plotListOverTime[[plotCounterOverTime]] <- plotOverTime
@@ -1058,7 +1067,27 @@ for (aaa in 1:length(allTAdaptation))
         ggsave(file=paste(currentTitle, "_Speed_schoolfield_errorbar.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
       }
       
+### TEMPORARY CHANGE
+      # plot data and model fit
+      thisPlot <- ggplot(d2, aes(temp, rate))
+      if (!is.null(fit))
+      { thisPlot <- thisPlot + 
+        geom_line(aes(temp, .fitted), preds, col = lineColours[aaa], size=2)
+      }
+      thisPlot <- thisPlot +
+        geom_point(size=3, col=markerColours[mmm], shape=markerShapes[mmm]) +
+        annotate("text", size=5, x=10.5, y=1020, label= paste("E=", round(calculatedFitParameters$e_from_fit, 2), "eV", sep=""), hjust = 0, parse=F) +
+        geom_errorbar(aes(ymin=rate-sd, ymax=rate+sd), width=1.3, col=markerColours[mmm]) + 
+        theme_classic(base_size = 14) +
+        scale_x_continuous(name="Temp. (°C)",  limits=c(9, 33.5), expand = c(0, 0)) +
+        scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")")), limits=c(0,1100), breaks=seq(0, 1000, by=200), expand = c(0, 0))
+      # ggtitle(paste("T:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; L: ", allLines[lll]))
       
+      thisPlot
+      if (saveFigures){
+        ggsave(file=paste(currentTitle, "_Speed_schoolfield_errorbar.pdf", sep=""), device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
+        # ggsave(file=paste(currentTitle, "_Speed_schoolfield_errorbar.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
+      }
       
       if (lll == 1){
         plotList[[plotCounter1]] <- thisPlot # add the first plot for each condition to a figure
@@ -1133,15 +1162,21 @@ print(allFitResults)
 
 if (combineLinesTogether)
 {
+  if (selectTopXPercentFastest == 20)
+  {
   write.table(allFitResults, "allFitResults_Schoolfield_on_Stokes_Power_long_term_response_all.csv", append = FALSE, sep = ", ", row.names = FALSE)
   write.table(allFitResultsOnSpeed, "allFitResults_Schoolfield_on_Speed_long_term_response_all.csv", append = FALSE, sep = ", ", row.names = FALSE)
-} else {
+  }
+  write.table(allFitResults, paste("allFitResults_Schoolfield_on_Stokes_Power_long_term_response_all_q", selectTopXPercentFastest, ".csv", sep=""), append = FALSE, sep = ", ", row.names = FALSE)
+  write.table(allFitResultsOnSpeed, paste("allFitResults_Schoolfield_on_Speed_long_term_response_all_q", selectTopXPercentFastest, ".csv", sep=""), append = FALSE, sep = ", ", row.names = FALSE)
+  
+  } else {
   write.table(allFitResults, "allFitResults_Schoolfield_on_Stokes_Power_long_term_response.csv", append = FALSE, sep = ", ", row.names = FALSE)
   write.table(allFitResultsOnSpeed, "allFitResults_Schoolfield_on_Speed_long_term_response.csv", append = FALSE, sep = ", ", row.names = FALSE)
 }
 
 
-
+} # selectTopXPercentFastest
 
 
 # Make a figure with all the plots
@@ -1264,7 +1299,7 @@ ggplot(allFitResults, aes(x=tAdaptation, y=topt, color=factor(mediumConcentratio
   scale_color_manual(values=c("#A3A3A3", "#666666", "#000000")) +
   scale_fill_manual(values=c("#A3A3A3", "#666666", "#000000")) +
   scale_y_continuous(name="Optimal temperature (ºC)") +
-  scale_x_continuous(name="Adaptation temperature (ºC)") +
+  scale_x_continuous(name="Acclimation temperature (ºC)") +
   theme_classic(base_size=15) +
   #theme(legend.position = "none") +
   labs(color = "Conc.") + # this specifies a custom legend
@@ -1290,7 +1325,7 @@ ggplot(allFitResultsOnSpeed, aes(x=tAdaptation, y=e_from_fit, color=factor(mediu
   scale_color_manual(values=c("#A3A3A3", "#666666", "#000000")) +
   scale_fill_manual(values=c("#A3A3A3", "#666666", "#000000")) +
   scale_y_continuous(name="activation energy (eV)", limits=c(0, 1)) +
-  scale_x_continuous(name="Adaptation temperature (ºC)", breaks=c(15,20,25), limits=c(12.5, 27.5)) + 
+  scale_x_continuous(name="Acclimation temperature (ºC)", breaks=c(15,20,25), limits=c(12.5, 27.5)) + 
   theme_classic(base_size=15) +
   theme(legend.position = "none") +
   labs(color = "Conc. (%)") # + # this specifies a custom legend
@@ -1323,7 +1358,7 @@ ggplot(allFitResultsOnSpeed, aes(x=tAdaptation, y=topt, color=factor(mediumConce
   scale_color_manual(values=c("#A3A3A3", "#666666", "#000000")) +
   scale_fill_manual(values=c("#A3A3A3", "#666666", "#000000")) +
   scale_y_continuous(name="Optimal temperature (ºC)") +
-  scale_x_continuous(name="Adaptation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
+  scale_x_continuous(name="Acclimation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
   theme_classic(base_size=15) +
   theme(legend.position = "none") +
   labs(color = "Conc. (%)") + # this specifies a custom legend
@@ -1356,7 +1391,7 @@ ggplot(allFitResultsOnSpeed, aes(x=tAdaptation, y=r_tref, color=factor(mediumCon
   scale_fill_manual(values=c("#A3A3A3", "#666666", "#000000")) +
   scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")")), limits=c(0, 900)) +
   #  scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")")), sec.axis = sec_axis( trans=~.*1e-6, name=paste("Speed (m/s)"))) +
-  scale_x_continuous(name=expression("Adaptation temperature (ºC)"), limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
+  scale_x_continuous(name=expression("Acclimation temperature (ºC)"), limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
   theme_classic(base_size=12) +
   theme(legend.position = "none") +
   labs(color = "Conc.") + # this specifies a custom legend
@@ -1400,7 +1435,7 @@ if (includeBootstrap)
     scale_fill_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
     scale_shape_manual(values=c(21, 24, 22)) + # shapes for the markers
     scale_y_continuous(name="Activation Energy (eV)", limits=c(0, 1)) +
-    scale_x_continuous(name="Adaptation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
+    scale_x_continuous(name="Acclimation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
     theme_classic(base_size=18) +
     theme(legend.position = "none") +
     labs(color = "Conc. (%)") # + # this specifies a custom legend
@@ -1434,7 +1469,7 @@ if (includeBootstrap)
     scale_shape_manual(values=c(21, 24, 22)) + # shapes for the markers
     scale_y_continuous(name=expression(paste("Speed at T=20°C (", mu, "m/s", ")")), limits=c(0, 900)) +
     # scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")")), sec.axis = sec_axis( trans=~.*1e-6, name=paste("Speed (m/s)"))) +
-    scale_x_continuous(name=expression("Adaptation temperature (ºC)"), limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
+    scale_x_continuous(name=expression("Acclimation temperature (ºC)"), limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
     theme_classic(base_size=18) +
     theme(legend.position = "none") +
     labs(color = "Conc.") #+ # this specifies a custom legend
