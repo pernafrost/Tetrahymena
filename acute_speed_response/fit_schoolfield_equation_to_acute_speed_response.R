@@ -32,9 +32,10 @@ data_summary <- function(data, varname, groupnames){
 # Consider changing this to true, also consider
 # removing the filter on size and speed
 # check why allFitResults$e_from_fit and allFitResults$e are different
-saveFigures <- TRUE
+saveFigures <- FALSE
 combineLinesTogether <- TRUE # whether to analyse all experimental lines together or each independently
 includeBootstrap <- TRUE # whether to run a bootstrap on the fitted thermal response curve
+
 
 # dev.off()
 
@@ -57,6 +58,7 @@ referenceTemperature <- 20 # note that this is not used; check in the code
 skipMotherCulture <- TRUE # whether to skip the mother culture from this analysis
 
 fileName <- "~/Tetrahymena/acute_speed_response/track_analysis_results_individual_particles.csv" # file.choose() # ask the user to select a file name.
+
 
 setwd(dirname(fileName))
 allExperimentResults <- read.table(file = fileName, sep = ",", header=TRUE, na.strings = c("NA", " NA"))
@@ -121,6 +123,12 @@ names(allExperimentResults)
 
 allTAdaptation <- sort(unique(allExperimentResults$tAdaptation))
 
+
+# selectTopXPercentFastest <- 20
+# for (selectTopXPercentFastest in 5:100)
+for (selectTopXPercentFastest in 20)
+{
+
 # coefficients of fitted log(speed) vs. log(cell volume)
 allFittedLogSpeedVsLogVolume <- list()
 
@@ -129,12 +137,12 @@ plotListExtra = list() # I have two plot lists, one for the first nine plots, to
 # a figure panel, the remaining plots are also kept and arranged in a different list
 plotCounter <- 0
 plotCounterExtra <- 0
-iteration = 0
-
+iteration <- 0
 
 # I will save the data with the speed rescaled to the
 # reference temperature for swimming analysis
 allExportedDataForSwimmingAnalysis <- list()
+
 
 for (aaa in 1:length(allTAdaptation))
 {
@@ -204,7 +212,7 @@ for (aaa in 1:length(allTAdaptation))
         for (ttt in 1:length(allTTest))
         {
           currentConditionThisTemperatureAndLine <- subset(currentCondition, tTest == allTTest[ttt] & line == allLinesInsideLoop[iii])
-          speedQuantile <- quantile(currentConditionThisTemperatureAndLine$medianSpeed, probs = 0.80, na.rm = TRUE)
+          speedQuantile <- quantile(currentConditionThisTemperatureAndLine$medianSpeed, probs = (100 - selectTopXPercentFastest)/100, na.rm = TRUE)
           currentCondition$speedQuantile[currentCondition$tTest == allTTest[ttt] & currentCondition$line==allLinesInsideLoop[iii]] <- speedQuantile
         }
       }
@@ -213,7 +221,6 @@ for (aaa in 1:length(allTAdaptation))
       
       
       currentConditionTopSpeed <- subset(currentCondition, medianSpeed >= speedQuantile)
-      
       
       
       
@@ -257,6 +264,63 @@ for (aaa in 1:length(allTAdaptation))
       }
 
       
+      
+# Here I try to colour differently the 20% chosen values
+      # based on https://stackoverflow.com/questions/36203195/fill-specific-regions-in-geom-violin-plot
+      
+      
+      # careful as I am not checking that they are in the right order
+      # but I first sort the data frame
+      
+      # this only works if the analysis is line by line, not with combined lines
+      # because the speed quantile is calculated for each line
+      currentConditionSorted <- currentCondition[order(currentCondition$tTest), ]
+      quantile_values <- unique(currentConditionSorted$speedQuantile)
+      
+      p <- ggplot() +
+      geom_violin(data = currentConditionSorted, aes(x = factor(tTest),y = medianSpeed), width=1.5, linewidth=1.5)
+      p
+      p_build <- ggplot2::ggplot_build(p)$data[[1]]
+      
+#This comes directly from the source of geom_violin
+p_build <- transform(p_build,
+                     xminv = x - violinwidth * (x - xmin),
+                     xmaxv = x + violinwidth * (xmax - x))
+
+p_build <- rbind(plyr::arrange(transform(p_build, x = xminv), y),
+                 plyr::arrange(transform(p_build, x = xmaxv), -y))
+
+
+
+#Add our fill variable
+p_build$fill_group <- ifelse(p_build$y >= quantile_values[round((p_build$xmax + p_build$xmin)/2)],'Above','Below')
+#This is necessary to ensure that instead of trying to draw
+# 3 polygons, we're telling ggplot to draw six polygons
+p_build$group1 <- with(p_build,interaction(factor(group),factor(fill_group)))
+
+#Note the use of the group aesthetic here with our computed version,
+# group1
+p_fill <- ggplot() + 
+  geom_polygon(data = p_build,
+               aes(x = x*2.5+7.5,y = y,group = group1,fill = fill_group)) +
+  scale_y_continuous(name=expression(paste("speed (", mu, "m/s)")), limits=c(0,1000)) +
+  scale_x_continuous(name="tested temperature", limits=c(8,42)) +
+  theme_classic(base_size = 18) +
+  scale_fill_manual(values=c("black", "darkgrey")) +
+  theme(legend.position = "none")
+  
+p_fill
+            
+
+if (saveFigures){
+  ggsave(file=paste(currentTitle, "_speed_vs_temp_violin_top_speed.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
+  ggsave(file=paste(currentTitle, "_speed_vs_temp_violin_top_speed.eps", sep=""), device="eps", dpi = 1200, width = 24, height = 20, units = "cm")
+  ggsave(file=paste(currentTitle, "_speed_vs_temp_violin_top_speed.pdf", sep=""), device=cairo_pdf, dpi = 1200, width = 24, height = 20, units = "cm")
+}
+
+
+
+
       ggplot(currentCondition, aes(x=tTest, y=medianSpeed, color=medianArea)) +
         geom_jitter(position = position_jitter(height = 0, width = .5)) + 
         # geom_jitter(position = position_jitter(height = 0, width = .3)) +
@@ -282,9 +346,9 @@ for (aaa in 1:length(allTAdaptation))
         geom_smooth(method="lm", se=FALSE, formula=y ~ x, colour="red", na.rm=TRUE) + 
         scale_y_continuous(name=expression(paste('log'[10]*'(speed)'," (",  mu, "m/s)"))) +
         scale_x_continuous(name=expression(paste('log'[10]*'(volume)'," ",  mu, 'm'^3))) +
-        theme_classic(base_size = 10) +
+        theme_classic(base_size = 15) +
         theme(legend.position = "none") + 
-        ggtitle(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll])) +
+        # ggtitle(paste("TAdapt:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; Line: ", allLines[lll])) +
         scale_color_continuous() +
         coord_fixed() +
         facet_wrap(vars(tTest)) +
@@ -292,22 +356,24 @@ for (aaa in 1:length(allTAdaptation))
       # scale_color_manual(values=c("#3B9AB2", "#EBCC2A", "#F21A00")) # this is the zissou1 palette
       if (saveFigures){
         ggsave(file=paste(currentTitle, "_speed_vs_cell_volume.png", sep=""), dpi = 600, width = 12, height = 15, units = "cm")
+        ggsave(file=paste(currentTitle, "_speed_vs_cell_volume.eps", sep=""), device="eps", dpi = 1200, width = 24, height = 18, units = "cm")
+        ggsave(file=paste(currentTitle, "_speed_vs_cell_volume.pdf", sep=""), device=cairo_pdf, dpi = 1200, width = 24, height = 18, units = "cm")
       }
       
-        library("lmodel2")
-        for (ttt in sort(unique(currentConditionTopSpeed$tTest)))
-        {
-        # print(ttt)
+      library("lmodel2")
+      for (ttt in sort(unique(currentConditionTopSpeed$tTest)))
+      {
         # exclude high temperature conditions as cells change shape and various things
         # happen:
         if (ttt > 30) next
+        # print(ttt)
         fitSpeedVsVolume <- lmodel2(formula=estimatedlogVolume ~ logSpeed, data = subset(currentConditionTopSpeed, tTest == ttt), range.y="interval", range.x = "interval", nperm=99)
         # print(fitSpeedVsVolume$regression.results)
         # fitSpeedVsVolume <- lm(formula=estimatedlogVolume ~ logSpeed, data = subset(currentConditionTopSpeed, tTest == ttt))
         # print(coefficients(fitSpeedVsVolume))
         allFittedLogSpeedVsLogVolume[[length(allFittedLogSpeedVsLogVolume)+1]] <- fitSpeedVsVolume$regression.results$Slope
         # summary(fitSpeedVsVolume)
-        }
+      }
       
       # I am running this on currentConditionTopSpeed because I think it makes more sense to do it only on the cells
       # that move fast and so are well aligned with the image.
@@ -848,6 +914,26 @@ for (aaa in 1:length(allTAdaptation))
       }
       
       
+      ### TEMPORARY CHANGE
+      # plot data and model fit
+      thisPlot <- ggplot(d2, aes(temp, rate)) +
+        geom_line(aes(temp, .fitted), preds, col = lineColours[aaa], size=2) +
+        geom_point(size=3, col=markerColours[mmm], shape=markerShapes[mmm]) +
+        # annotate("text", size=5, x=10.5, y=1020, label= paste("E=", round(calculatedFitParameters$e_from_fit, 2), "eV", sep=""), hjust = 0, parse=F) +
+        geom_errorbar(aes(ymin=rate-sd, ymax=rate+sd), width=1.3, col=markerColours[mmm]) + 
+        theme_classic(base_size = 14) +
+        scale_x_continuous(name="Temp. (°C)",  limits=c(9, 33.5), expand = c(0, 0)) +
+        scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")")), limits=c(0,1100), breaks=seq(0, 1000, by=200), expand = c(0, 0))
+      # ggtitle(paste("T:", allTAdaptation[aaa], "; C:", allMediumConcentrations[mmm], "; L: ", allLines[lll]))
+      
+      thisPlot
+      if (saveFigures){
+        ggsave(file=paste(currentTitle, "_Speed_schoolfield_errorbar.pdf", sep=""), device=cairo_pdf, dpi = 1200, width = 12, height = 10, units = "cm")
+        # ggsave(file=paste(currentTitle, "_Speed_schoolfield_errorbar.png", sep=""), dpi = 600, width = 12, height = 10, units = "cm")
+      }
+      
+      
+      
       if (lll == 1 & !is.finite(as.numeric(allLines[lll]))){
         plotList[[plotCounter]] <- thisPlot
       } else if (is.finite(as.numeric(allLines[1])) & lll==length(allLines)) {
@@ -928,7 +1014,7 @@ for (aaa in 1:length(allTAdaptation))
       
       allExportedDataForSwimmingAnalysis[[iteration]] <- currentConditionTopSpeedForSwimmingAnalysis
       
-
+      
       
     }
   }
@@ -956,7 +1042,7 @@ ggplot(allExportedDataForSwimmingAnalysisDF, aes(x=estimatedlogVolume, y=log10te
   scale_color_viridis(option="C", limits = c(15, 30)) +
   coord_fixed() +
   facet_grid(rows=vars(tAdapt_as_factor), cols=vars(density_as_factor)) +
-  labs(color="T:")
+  labs(color="T (°C)")
 
 write.table(allExportedDataForSwimmingAnalysisDF, "allExportedDataForSwimmingAnalysisDF.csv", append = FALSE, sep = ", ", row.names = FALSE)
 
@@ -965,15 +1051,20 @@ print(allFitResults)
 
 if (combineLinesTogether)
 {
-  write.table(allFitResults, "allFitResults_Schoolfield_on_Stokes_Power_acute_response_all.csv", append = FALSE, sep = ", ", row.names = FALSE)
-  write.table(allFitResultsOnSpeed, "allFitResults_Schoolfield_on_Speed_acute_response_all.csv", append = FALSE, sep = ", ", row.names = FALSE)
+  if (selectTopXPercentFastest == 20)
+  {
+    write.table(allFitResults, "allFitResults_Schoolfield_on_Stokes_Power_acute_response_all.csv", append = FALSE, sep = ", ", row.names = FALSE)
+    write.table(allFitResultsOnSpeed, "allFitResults_Schoolfield_on_Speed_acute_response_all.csv", append = FALSE, sep = ", ", row.names = FALSE)
+  }
+  write.table(allFitResults, paste("allFitResults_Schoolfield_on_Stokes_Power_acute_response_all_q", selectTopXPercentFastest, ".csv", sep=""), append = FALSE, sep = ", ", row.names = FALSE)
+  write.table(allFitResultsOnSpeed, paste("allFitResults_Schoolfield_on_Speed_acute_response_all_q", selectTopXPercentFastest, ".csv", sep=""), append = FALSE, sep = ", ", row.names = FALSE)
 } else {
   write.table(allFitResults, "allFitResults_Schoolfield_on_Stokes_Power_acute_response.csv", append = FALSE, sep = ", ", row.names = FALSE)
   write.table(allFitResultsOnSpeed, "allFitResults_Schoolfield_on_Speed_acute_response.csv", append = FALSE, sep = ", ", row.names = FALSE)
 }
 
 
-
+}
 
 # Make a figure with all the plots
 library(ggpubr)
@@ -1024,7 +1115,7 @@ ggplot(allFitResults, aes(x=tAdaptation, y=e_from_fit, color=factor(mediumConcen
   scale_color_manual(values=c("#A3A3A3", "#666666", "#000000")) +
   scale_fill_manual(values=c("#A3A3A3", "#666666", "#000000")) +
   scale_y_continuous(name="activation energy (eV)") +
-  scale_x_continuous(name="Adaptation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
+  scale_x_continuous(name="Acclimation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
   theme_classic(base_size=15) +
   #theme(legend.position = "none") +
   labs(color = "Conc.") + # this specifies a custom legend
@@ -1050,7 +1141,7 @@ ggplot(allFitResults, aes(x=tAdaptation, y=topt, color=factor(mediumConcentratio
   scale_color_manual(values=c("#A3A3A3", "#666666", "#000000")) +
   scale_fill_manual(values=c("#A3A3A3", "#666666", "#000000")) +
   scale_y_continuous(name="Optimal Temperature (ºC)") +
-  scale_x_continuous(name="Adaptation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
+  scale_x_continuous(name="Acclimation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
   theme_classic(base_size=15) +
   theme(legend.position = "none") +
   ggtitle("Optimal temperature on Stokes power")
@@ -1080,7 +1171,7 @@ ggplot(allFitResultsOnSpeed, aes(x=tAdaptation, y=e_from_fit, color=factor(mediu
   scale_fill_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
   scale_shape_manual(values=c(21, 24, 22)) + # shapes for the markers
   scale_y_continuous(name="Activation Energy (eV)", limits=c(0, 1)) +
-  scale_x_continuous(name="Adaptation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
+  scale_x_continuous(name="Acclimation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
   theme_classic(base_size=18) +
   theme(legend.position = "none") +
   labs(color = "Conc. (%)") # + # this specifies a custom legend
@@ -1113,7 +1204,7 @@ ggplot(allFitResultsOnSpeed, aes(x=tAdaptation, y=topt, color=factor(mediumConce
   scale_fill_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
   scale_shape_manual(values=c(21, 24, 22)) + # shapes for the markers
   scale_y_continuous(name="Optimal temperature (ºC)") +
-  scale_x_continuous(name="Adaptation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
+  scale_x_continuous(name="Acclimation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
   theme_classic(base_size=12) +
   theme(legend.position = "none") +
   labs(color = "Conc.") # + # this specifies a custom legend
@@ -1147,7 +1238,7 @@ ggplot(allFitResultsOnSpeed, aes(x=tAdaptation, y=r_tref, color=factor(mediumCon
   scale_shape_manual(values=c(21, 24, 22)) + # shapes for the markers
   scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")")), limits=c(0, 900)) +
   # scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")")), sec.axis = sec_axis( trans=~.*1e-6, name=paste("Speed (m/s)"))) +
-  scale_x_continuous(name=expression("Adaptation temperature (ºC)"), limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
+  scale_x_continuous(name=expression("Acclimation temperature (ºC)"), limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
   theme_classic(base_size=12) +
   theme(legend.position = "none") +
   labs(color = "Conc.") + # this specifies a custom legend
@@ -1186,11 +1277,11 @@ ggplot(allFitResultsOnSpeed, aes(x=tAdaptation, y=r_tadapt, color=factor(mediumC
   scale_shape_manual(values=c(21, 24, 22)) + # shapes for the markers
   scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")")), limits=c(0, 900)) +
   # scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")")), sec.axis = sec_axis( trans=~.*1e-6, name=paste("Speed (m/s)"))) +
-  scale_x_continuous(name=expression("Adaptation temperature (ºC)"), limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
+  scale_x_continuous(name=expression("Acclimation temperature (ºC)"), limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
   theme_classic(base_size=12) +
   theme(legend.position = "none") +
   labs(color = "Conc.") + # this specifies a custom legend
-  ggtitle("Speed at adaptation temperature")
+  ggtitle("Speed at acclimation temperature")
 
 if (saveFigures)
 {
@@ -1218,7 +1309,7 @@ if (includeBootstrap)
     scale_fill_manual(values=c("#8FCDDC", "#3B9AB2", "#18434E", "#F2DD70", "#EBCC2A", "#463C07", "#FF7C6C", "#F21A00", "#660B00")) +
     scale_shape_manual(values=c(21, 24, 22)) + # shapes for the markers
     scale_y_continuous(name="Activation Energy (eV)", limits=c(0, 1)) +
-    scale_x_continuous(name="Adaptation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
+    scale_x_continuous(name="Acclimation temperature (ºC)", limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
     theme_classic(base_size=18) +
     theme(legend.position = "none") +
     labs(color = "Conc. (%)") # + # this specifies a custom legend
@@ -1251,11 +1342,11 @@ if (includeBootstrap)
     scale_shape_manual(values=c(21, 24, 22)) + # shapes for the markers
     scale_y_continuous(name=expression(paste("Speed at T=20°C (", mu, "m/s", ")")), limits=c(0, 900)) +
     # scale_y_continuous(name=expression(paste("Speed (", mu, "m/s", ")")), sec.axis = sec_axis( trans=~.*1e-6, name=paste("Speed (m/s)"))) +
-    scale_x_continuous(name=expression("Adaptation temperature (ºC)"), limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
+    scale_x_continuous(name=expression("Acclimation temperature (ºC)"), limits=c(12.5, 27.5), breaks=c(15, 20, 25)) +
     theme_classic(base_size=18) +
     theme(legend.position = "none") +
     labs(color = "Conc.") # + # this specifies a custom legend
-    # ggtitle(paste("Speed at reference temperature (", referenceTemperature, "°C)", sep=""))
+  # ggtitle(paste("Speed at reference temperature (", referenceTemperature, "°C)", sep=""))
   
   if (saveFigures)
   {
