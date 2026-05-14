@@ -339,7 +339,7 @@ for (aaa in 1:length(allTAdaptation))
   for (mmm in 1:length(allMediumConcentrations))
   { 
     d1current0 <- subset(d1subculture, tAdaptation == allTAdaptation[aaa] & mediumConcentration == allMediumConcentrations[mmm])
-    d1current <- bind_rows(d1current0, d1mother)
+    d1current <- dplyr::bind_rows(d1current0, d1mother)
     fittedSizeChange <- lm(formula = estimatedlogVolume ~ time, data=d1current)
     print(paste("T:", allTAdaptation[aaa], "; C=", allMediumConcentrations[mmm], "; Volume=10^(", round(fittedSizeChange$coefficients[1], 5) , "+", round(fittedSizeChange$coefficients[2],5), "t)", sep=""))
     deltaBodySize <- data.frame(tAdaptation=allTAdaptation[aaa], 
